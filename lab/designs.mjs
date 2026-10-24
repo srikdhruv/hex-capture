@@ -31,7 +31,20 @@ function sniper(seat) { // #1 -> single plain, its 6 other cells appended to #3 
   c3.push([2, 0, 'plain'], [2, -1, 'plain'], [1, 1, 'plain'], [-1, 2, 'plain'], [-2, 2, 'star'], [-2, 1, 'plain']);
   return [bpFrom([[0, 0, 'plain']]), h[1], bpFrom(c3)];
 }
+function h1(seat) { // 6-star blob (centre + 5 ring) with a 12-plain rim; walls freed into 'ww' domino + 'w' sniper
+  const st = [[0, 0], ...D.slice(0, 5)]; const sk = new Set(st.map(([q, r]) => R.key(q, r)));
+  const rim = new Set(); for (const [q, r] of st) for (const n of R.neighbors(R.key(q, r))) if (!sk.has(n)) rim.add(n);
+  const cells = st.map(([q, r]) => [q, r, 'star']); for (const k of rim) { const [q, r] = R.parse(k); cells.push([q, r, 'plain']); }
+  return [bpFrom([[0, 0, 'wall'], [1, 0, 'wall']]), bpFrom(cells), bpFrom([[0, 0, 'wall']])];
+}
+function eris(seat) { // R8 opponent's final hand: 6-plain line, www line, 12-cell 6-star parking piece
+  return [bpFrom([0, 1, 2, 3, 4, 5].map((q) => [q, 0, 'plain'])), bpFrom([[0, 0, 'wall'], [1, 0, 'wall'], [2, 0, 'wall']]),
+    { '0,1': 'star', '1,1': 'plain', '1,0': 'plain', '0,0': 'plain', '-1,1': 'plain', '-1,2': 'plain', '0,2': 'plain', '-2,1': 'star', '-3,1': 'star', '-4,1': 'star', '-5,1': 'star', '2,1': 'star' }];
+}
 export const DESIGNS = {
+  h1: { cost: 15, hand: h1 },
+  eris: { cost: 13, hand: eris },
+  eris0: { cost: 0, hand: eris },
   fortlite: { cost: 9, hand: fortlite },
   fort19: { cost: 14, hand: fort19 },
   sniper: { cost: 6, hand: sniper },

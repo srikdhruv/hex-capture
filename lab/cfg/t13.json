@@ -1,0 +1,3 @@
+[{"name":"fortlite","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"eris-hand free, seal-aware, no stars","wStar":0.5,"wThreat":1,"noise":0.5,"design":"eris0","starFreeUntil":120,"wSeal":1},
+ {"name":"H1 star18+ww+w (15), seal-aware","wStar":0.5,"wThreat":1,"noise":0.5,"design":"h1","wSeal":0.5}]

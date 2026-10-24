@@ -1,0 +1,4 @@
+[{"name":"fortlite","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"eris replica","wStar":0.5,"wThreat":1,"noise":0.5,"design":"eris0","starFreeUntil":120,"wSeal":1},
+ {"name":"fortlite->www@60 seal","wStar":0.5,"wThreat":1,"noise":0.5,"convertPlans":["blue_fortWWW","red_fortWWW"],"nFirst":9,"convertAt":60,"starFreeAfter":64,"wSeal":0.5},
+ {"name":"fortlite->www@40 seal","wStar":0.5,"wThreat":1,"noise":0.5,"convertPlans":["blue_fortWWW","red_fortWWW"],"nFirst":9,"convertAt":40,"starFreeAfter":44,"wSeal":0.5}]

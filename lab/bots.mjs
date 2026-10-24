@@ -104,6 +104,7 @@ export function makeBot(params = {}) {
   if (typeof P.plan === 'string') P.edits = editPlan(P.plan, { startPly: P.planStart ?? 0 });
   let spent = 0, seqI = 0;
   const bot = (g) => {
+    if (P.seqAt) { const sq = P.seqAt[g.seat()]; if (sq && seqI < sq.length && g.ply >= sq[seqI][0]) { const out = []; const n = g.movesLeftInTurn(); while (out.length < n && seqI < sq.length && g.ply + out.length >= sq[seqI][0]) out.push({ edit: sq[seqI++][1] }); if (out.length) return out; } }
     if (P.seq) { const sq = P.seq[g.seat()]; if (sq && seqI < sq.length && g.ply >= (P.seqStart || 0)) { const n = Math.min(g.movesLeftInTurn(), sq.length - seqI); const out = sq.slice(seqI, seqI + n).map((e) => ({ edit: e })); seqI += n; return out; } }
     if (P.designCost && spent < P.designCost) { const n = Math.min(g.movesLeftInTurn(), P.designCost - spent); spent += n; return Array(n).fill('pass'); }
     return chooseTurn(g, P);
@@ -112,10 +113,24 @@ export function makeBot(params = {}) {
   return bot;
 }
 
+// Stars of seat s reachable from outside through empty / enemy / own non-wall cells (i.e. NOT enclosed by own walls).
+const SG = new Int32Array(S * S); let sgen = 0; const STK = new Int32Array(S * S);
+export function unsealedStars(g, s) {
+  let qmin = 1e9, qmax = -1e9, rmin = 1e9, rmax = -1e9;
+  for (const t of [0, 1]) for (const i of g.occupied(t)) { const q = i % S, r = (i / S) | 0; if (q < qmin) qmin = q; if (q > qmax) qmax = q; if (r < rmin) rmin = r; if (r > rmax) rmax = r; }
+  qmin--; qmax++; rmin--; rmax++;
+  const gen = ++sgen; let sp = 0, n = 0; const own = g.own, kind = g.kind;
+  const push = (i) => { if (SG[i] === gen) return; const q = i % S, r = (i / S) | 0; if (q < qmin || q > qmax || r < rmin || r > rmax) return; if (own[i] === s && kind[i] === WALL) return; SG[i] = gen; STK[sp++] = i; };
+  for (let q = qmin; q <= qmax; q++) { push(q + rmin * S); push(q + rmax * S); }
+  for (let r = rmin; r <= rmax; r++) { push(qmin + r * S); push(qmax + r * S); }
+  while (sp) { const i = STK[--sp]; if (own[i] === s && kind[i] === STAR) n++; for (let d = 0; d < 6; d++) push(i + NB[d]); }
+  return n;
+}
 function staticEval(g, s, P) {
   const o = 1 - s, rem = Math.max(0, TOTAL - g.ply) / TOTAL;
   const ws = P.wStar * (P.flatStar ? 1 : rem);
-  const v = (g.scores[s] - g.scores[o]) + ws * (g.stars[s] - g.stars[o]);
+  let v = (g.scores[s] - g.scores[o]) + ws * (g.stars[s] - g.stars[o]);
+  if (P.wSeal) v += P.wSeal * rem * (0.5 * unsealedStars(g, o) * g.stars[s] - unsealedStars(g, s) * Math.max(6, g.stars[o]));
   if (!P.wExp) return v;
   return v - P.wExp * rem * exposedStars(g, s) * g.stars[o] / 6 + P.wExp * rem * exposedStars(g, o) * g.stars[s] / 6 * 0.3;
 }
@@ -135,6 +150,7 @@ export function chooseTurn(g, P) {
     gapFilter = (list) => { const f = []; for (let j = 0; j < list.length; j += 2) { const bp = g.hands[s][list[j]], a = list[j + 1]; let ok = true; if (bp.stars) { for (const off of bp.offs) if (DG[a + off] === gen) { ok = false; break; } if (!ok && g.peekStars(s, list[j], a) > 0) ok = true; } if (ok) f.push(list[j], a); } return f.length ? f : list; };
     pl = gapFilter(pl);
   }
+  if (P.starFreeUntil != null && g.ply < P.starFreeUntil) { const f = []; for (let j = 0; j < pl.length; j += 2) if (!g.hands[s][pl[j]].stars) f.push(pl[j], pl[j + 1]); if (f.length) pl = f; }
   if (P.starFreeAfter != null && g.ply >= P.starFreeAfter) { const f = []; for (let j = 0; j < pl.length; j += 2) if (!g.hands[s][pl[j]].stars) f.push(pl[j], pl[j + 1]); if (f.length) pl = f; }
   if (!pl.length) return ['pass'];
   // first action candidates by static eval after one action

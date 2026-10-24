@@ -62,3 +62,12 @@ PLANS.red_turtle = runPlan(1, [
   [1, [0, 0], 2, [2, 0]], [1, [1, 0], 2, [2, -1]], [1, [0, 1], 1, [0, 0]], [1, [1, -1], 1, [1, 0]], [1, [0, -1], 2, [3, -1]], [1, [-1, 1], 2, [3, 0]],
   [0, [0, 0], 2, [2, 1]], ...lineS]);
 if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_turtle', 'red_turtle']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+// Replica of live opponent "aryan" (R9, Red): exact Red edits from the game log (plies 1,2,5,9,10,17):
+// #1 = plain flower + 4-star line (5 stars), #2 = 3-wall zigzag (wall probe/attacker), #3 = plain flower.
+PLANS.red_aryan = { moves: ['2:1,0>2:-1,0', '2:0,2>1:2,1', '2:1,0>1:3,1', '2:2,1>1:4,1', '2:1,2>2:-1,2', '2:1,1>1:5,1'] };
+{ let h = R.setup().blueprints[1]; for (const m of PLANS.red_aryan.moves) { if (!R.editMoves(h).includes(m)) throw new Error('aryan ' + m); h = R.applyEdit(h, R.parseMove(m)).hand; } PLANS.red_aryan.hand = h; }
+PLANS.blue_none = { moves: [] }; PLANS.red_none = { moves: [] };
+// "Fortlite -> www": after Fortlite, convert at ply T: #2's 3 ring walls -> #3 (making *www), then #3's star -> #1. #3 = 'www' immune sniper/sealer.
+PLANS.blue_fortWWW = runPlan(0, [...PLANS.blue_fort.steps, [1, [1, 0], 2, [1, 0]], [1, [0, -1], 2, [2, 0]], [1, [-1, 1], 2, [3, 0]], [2, [0, 0], 0, [1, 0]]]);
+PLANS.red_fortWWW = runPlan(1, [...PLANS.red_fort.steps, [1, [1, -1], 2, [1, 0]], [1, [-1, 0], 2, [2, 0]], [1, [0, 1], 2, [3, 0]], [2, [0, 0], 0, [1, 0]]]);
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_fortWWW', 'red_fortWWW']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }

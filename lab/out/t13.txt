@@ -1,0 +1,10 @@
+games 36 in 468s
+fortlite               win%  87.5  W-L-D 21-3-0  blue 11-1 red 10-2  avgMargin 175 avgPts 261
+eris-hand free, seal-aware, no stars win%  62.5  W-L-D 15-9-0  blue 8-4 red 7-5  avgMargin -80 avgPts 100
+H1 star18+ww+w (15), seal-aware win%   0.0  W-L-D 0-24-0  blue 0-12 red 0-12  avgMargin -95 avgPts 5
+fortlite (B) vs eris-hand free, seal-aware, no stars (R) 5-1-0
+fortlite (B) vs H1 star18+ww+w (15), seal-aware (R) 6-0-0
+eris-hand free, seal-aware, no stars (B) vs fortlite (R) 2-4-0
+eris-hand free, seal-aware, no stars (B) vs H1 star18+ww+w (15), seal-aware (R) 6-0-0
+H1 star18+ww+w (15), seal-aware (B) vs fortlite (R) 0-6-0
+H1 star18+ww+w (15), seal-aware (B) vs eris-hand free, seal-aware, no stars (R) 0-6-0

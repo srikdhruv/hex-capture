@@ -1,0 +1,6 @@
+games 32 in 457s
+fortlite               win% 100.0  W-L-D 16-0-0  blue 16-0 red 0-0  avgMargin 2721 avgPts 3274
+noedit                 win%  87.5  W-L-D 14-2-0  blue 14-2 red 0-0  avgMargin 1336 avgPts 4119
+aryan                  win%   6.3  W-L-D 2-30-0  blue 0-0 red 2-30  avgMargin -2028 avgPts 1668
+fortlite (B) vs aryan (R) 16-0-0
+noedit (B) vs aryan (R) 14-2-0

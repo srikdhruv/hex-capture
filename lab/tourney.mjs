@@ -8,6 +8,7 @@ async function loadBot(cfg) {
   if (cfg.module) { const m = await import(cfg.module); return m[cfg.export || 'default'](cfg); }
   const { makeBot } = await import('./bots.mjs');
   if (cfg.design) { const { DESIGNS } = await import('./designs.mjs'); const d = DESIGNS[cfg.design]; cfg = { ...cfg, designHand: d.hand, designCost: cfg.designCost ?? d.cost }; }
+  if (cfg.convertPlans) { const { PLANS } = await import('./d1plan.mjs'); const mk = (n) => PLANS[n].moves.map((m, i) => [i < cfg.nFirst ? 0 : cfg.convertAt, m]); cfg = { ...cfg, seqAt: { 0: mk(cfg.convertPlans[0]), 1: mk(cfg.convertPlans[1]) } }; }
   if (cfg.plans) { const { PLANS } = await import('./d1plan.mjs'); cfg = { ...cfg, seq: { 0: PLANS[cfg.plans[0]].moves, 1: PLANS[cfg.plans[1]].moves } }; }
   return makeBot(cfg);
 }
@@ -19,6 +20,7 @@ if (isMainThread) {
   const onlyVs = process.env.VS; // if set, only pairings involving this name
   for (let i = 0; i < cfgs.length; i++) for (let j = 0; j < cfgs.length; j++) if (i !== j) {
     if (onlyVs && cfgs[i].name !== onlyVs && cfgs[j].name !== onlyVs) continue;
+    if (process.env.REDONLY && cfgs[j].name !== process.env.REDONLY) continue;
     for (let k = 0; k < n; k++) jobs.push([i, j, k]);
   }
   const res = cfgs.map(() => ({ w: 0, l: 0, d: 0, asBlue: [0, 0], asRed: [0, 0], margin: 0, pts: 0, games: 0 }));
