@@ -30,7 +30,7 @@ if [ "$os" = "Darwin" ] && command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$bin" 2>/dev/null || true
 fi
 echo "Starting hexbot (Ctrl+C to stop). Logs: $DIR/logs" >&2
-if [ -r /dev/tty ] && [ ! -t 0 ]; then
+if [ ! -t 0 ] && (exec </dev/tty) 2>/dev/null; then
   exec "$bin" "$@" < /dev/tty
 else
   exec "$bin" "$@"
