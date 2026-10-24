@@ -1,0 +1,4 @@
+[{"name":"aggr","wStar":0.5,"wThreat":1,"noise":0.5},
+ {"name":"fortlite(9)","wStar":0.5,"wThreat":1,"noise":0.5,"design":"fortlite"},
+ {"name":"fort19(14)","wStar":0.5,"wThreat":1,"noise":0.5,"design":"fort19"},
+ {"name":"sniper(6)","wStar":0.5,"wThreat":1,"noise":0.5,"design":"sniper"}]

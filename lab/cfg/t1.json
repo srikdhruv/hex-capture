@@ -1,0 +1,6 @@
+[{"name":"base","wStar":3,"wThreat":1,"noise":0.5},
+ {"name":"aggr_w0.5","wStar":0.5,"wThreat":1,"noise":0.5},
+ {"name":"build_w10","wStar":10,"wThreat":1,"noise":0.5},
+ {"name":"build_w30","wStar":30,"wThreat":1,"noise":0.5},
+ {"name":"nothreat","wStar":3,"wThreat":0,"noise":0.5},
+ {"name":"flat3","wStar":3,"wThreat":1,"flatStar":true,"noise":0.5}]

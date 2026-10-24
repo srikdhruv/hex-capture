@@ -1,0 +1,4 @@
+[{"name":"aggr","wStar":0.5,"wThreat":1,"noise":0.5},
+ {"name":"aggr+star6@0","wStar":0.5,"wThreat":1,"noise":0.5,"plan":"star6","planStart":0},
+ {"name":"aggr+star6@1","wStar":0.5,"wThreat":1,"noise":0.5,"plan":"star6","planStart":1},
+ {"name":"aggr+star6@40","wStar":0.5,"wThreat":1,"noise":0.5,"plan":"star6","planStart":40}]

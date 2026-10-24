@@ -1,0 +1,4 @@
+[{"name":"aggr","wStar":0.5,"wThreat":1,"noise":0.5},
+ {"name":"hp1(9 edits)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_hp1","red_hp1"]},
+ {"name":"stack5(5 edits)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_stack5","red_stack5"]},
+ {"name":"fort(9 real edits)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]}]
