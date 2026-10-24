@@ -67,8 +67,11 @@ inline bool parseEdit(const std::string& s, Move& m) {
 }
 
 // Next book edit for the side to move, or "" when out of book.
-std::string bookNext(const Book& B, const Game& g) {
+// myEdits: number of edits we already made this game (from history), -1 if unknown.
+std::string bookNext(const Book& B, const Game& g, int myEdits) {
   if (!B.ok || g.ply >= B.maxPly || g.ply >= TOTAL_PLIES) return "";
+  int cap = 0; for (int s = 0; s < 2; s++) cap = std::max(cap, (int)B.edits[s].size());
+  if (myEdits >= 0 && myEdits >= cap + 2) return "";  // never more than book length + 2 slack
   int seat = turnOf(g.ply);
   const Hand& cur = g.hands[seat];
   std::vector<Move> legal; Game::genEdits(cur, legal);
@@ -106,4 +109,4 @@ std::string bookNext(const Book& B, const Game& g) {
 }
 
 // Built-in default book: lab Fortlite (31-1 vs no-book v5 in arena, 1s/move).
-static const char* BUILTIN_BOOK = R"BOOK({"maxPly":40,"edits":{"0":["3:1,1>2:2,-1","3:1,0>2:0,1","3:0,0>2:-1,0","3:0,0>2:-3,2","3:-1,1>2:-3,3","3:0,1>2:-2,1","1:1,1>2:-1,4","1:1,0>2:0,3","1:0,0>2:-2,4"],"1":["3:1,1>2:2,1","3:1,0>2:2,0","3:0,0>2:1,2","3:0,0>2:0,-1","3:-1,1>2:1,0","3:0,1>2:-1,1","1:1,1>2:-2,4","1:1,0>2:-2,3","1:0,0>2:-1,4"]},"target":{"0":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"-1,2":"star","0,2":"wall","0,1":"star","-1,1":"wall","-2,2":"star","-2,3":"wall","-1,3":"star","1,0":"plain","1,1":"plain","0,0":"plain","-3,2":"plain","-3,3":"plain","-2,1":"plain","-1,4":"plain","0,3":"plain","-2,4":"plain"},{"0,0":"star"}],"1":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"0,2":"star","1,2":"star","1,1":"wall","0,1":"star","-1,2":"wall","-1,3":"star","0,3":"wall","2,2":"plain","2,1":"plain","1,3":"plain","0,0":"plain","1,0":"plain","-1,1":"plain","-2,4":"plain","-2,3":"plain","-1,4":"plain"},{"0,0":"star"}]}})BOOK";
+static const char* BUILTIN_BOOK = R"BOOK({"maxPly":26,"edits":{"0":["3:1,1>2:2,-1","3:1,0>2:0,1","3:0,0>2:-1,0","3:0,0>2:-3,2","3:-1,1>2:-3,3","3:0,1>2:-2,1","1:1,1>2:-1,4","1:1,0>2:0,3","1:0,0>2:-2,4"],"1":["3:1,1>2:2,1","3:1,0>2:2,0","3:0,0>2:1,2","3:0,0>2:0,-1","3:-1,1>2:1,0","3:0,1>2:-1,1","1:1,1>2:-2,4","1:1,0>2:-2,3","1:0,0>2:-1,4"]},"target":{"0":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"-1,2":"star","0,2":"wall","0,1":"star","-1,1":"wall","-2,2":"star","-2,3":"wall","-1,3":"star","1,0":"plain","1,1":"plain","0,0":"plain","-3,2":"plain","-3,3":"plain","-2,1":"plain","-1,4":"plain","0,3":"plain","-2,4":"plain"},{"0,0":"star"}],"1":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"0,2":"star","1,2":"star","1,1":"wall","0,1":"star","-1,2":"wall","-1,3":"star","0,3":"wall","2,2":"plain","2,1":"plain","1,3":"plain","0,0":"plain","1,0":"plain","-1,1":"plain","-2,4":"plain","-2,3":"plain","-1,4":"plain"},{"0,0":"star"}]}})BOOK";

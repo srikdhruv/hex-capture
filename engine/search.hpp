@@ -33,6 +33,7 @@ struct Params {
   double ordMy = 0.8;     // ordering: weight of my follow-up capture (mid-turn)
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
   double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
+  double expoB = 0;         // positional: BFS-reachable stars (targets) * multiplier, both sides
   double mob = 0.02;      // positional: frontier size difference
   double hcov = 0;        // hand: covered star-neighbour count of best star blueprint (shield value)
   double hw = 0.0;        // hand potential: stars in best blueprint * future stamps
@@ -41,6 +42,13 @@ struct Params {
   int verify = 0;         // deep verification of top combos with a selective opponent turn
   int vK1 = 10, vK2 = 6;  // opponent widths in verification
   double widenFrac = 0.45;
+  double widenStop = 0.85;
+  double starScale[2] = {1, 1};  // per-side star value scale (set per search from enemy vulnerability)
+  int bookYield = 2;        // 0: margin only, 1: yield if book concedes more stars, 2: yield on any threat/capture
+  double minScale = 0.3;    // star scale floor
+  int reachL = 12;          // BFS reach (empty hexes) for capture targets; 0 = use reachD hex distance
+  int reachD = 7;           // enemy star counts as a target if within this hex distance of our cells (<=7)
+  int vulnK = 4;            // star scale = min(1, vulnerable enemy stars / vulnK)  // no new widening stage after this fraction of the budget
   double bookMargin = 100; // play the book move if its value is within this of the best
   double buildBase = 0;   // reply baseline: unused actions build stars instead of passing
   int third = 1;          // leaf: 1 = my full 2-action capture turn, 0 = 1-action capture
@@ -53,10 +61,11 @@ struct Params {
     std::string k = kv.substr(0, p); double v = atof(kv.c_str() + p + 1);
     if (k == "alpha") alpha = v; else if (k == "beta") beta = v; else if (k == "ordMy") ordMy = v;
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
-    else if (k == "mob") mob = v; else if (k == "third") third = (int)v;
+    else if (k == "mob") mob = v; else if (k == "expoB") expoB = v; else if (k == "third") third = (int)v;
     else if (k == "hw") hw = v; else if (k == "hcov") { hcov = v; if (v != 0) g_needCover = true; } else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
     else if (k == "verify") verify = (int)v; else if (k == "vK1") vK1 = (int)v; else if (k == "vK2") vK2 = (int)v;
-    else if (k == "widenFrac") widenFrac = v; else if (k == "buildBase") buildBase = v;
+    else if (k == "widenFrac") widenFrac = v; else if (k == "widenStop") widenStop = v; else if (k == "vulnK") vulnK = (int)v; else if (k == "bookYield") bookYield = (int)v; else if (k == "reachL") reachL = std::min(250, (int)v);
+    else if (k == "minScale") minScale = v; else if (k == "reachD") reachD = std::min(7, (int)v); else if (k == "buildBase") buildBase = v;
     else if (k == "bookMargin") bookMargin = v;
     else if (k == "maxK1") maxK1 = (int)v; else if (k == "maxK2") maxK2 = (int)v;
     else if (k == "openRand") openRand = (int)v; else if (k == "openPlies") openPlies = (int)v; else if (k == "randPlies") randPlies = (int)v;
@@ -83,7 +92,7 @@ inline double msSince(Clock::time_point t) { return std::chrono::duration<double
 // ---------- evaluation helpers ----------
 inline double staticEval(const Game& g, int S, const Params& P) {
   int R = TOTAL_PLIES - g.ply;
-  double v = (g.score[S] - g.score[1 - S]) + P.alpha * R * (g.stars[S] - g.stars[1 - S]);
+  double v = (g.score[S] - g.score[1 - S]) + P.alpha * R * (g.stars[S] * P.starScale[S] - g.stars[1 - S] * P.starScale[1 - S]);
   if (P.hw != 0 || P.hcov != 0) {
     double b[2] = {0, 0}, cv[2] = {0, 0};
     for (int s = 0; s < 2; s++) for (int i = 0; i < 3; i++) {
@@ -97,9 +106,16 @@ inline double staticEval(const Game& g, int S, const Params& P) {
   return v;
 }
 
+inline int reachableTargets(Game& g, int X, int L);
 // Positional tie-break terms from S's perspective.
 inline double positional(Game& g, int S, const Params& P) {
-  if (P.expo == 0 && P.mob == 0) return 0;
+  double extra = 0;
+  if (P.expoB != 0) {
+    int O = 1 - S;
+    int tS = reachableTargets(g, S, P.reachL), tO = reachableTargets(g, O, P.reachL);  // tO = my stars they can reach
+    extra = P.expoB * (tS * g.stars[S] - tO * g.stars[O]);
+  }
+  if (P.expo == 0 && P.mob == 0) return extra;
   int expo[2] = {0, 0}, front[2] = {0, 0};
   for (int r = g.minr - 1; r <= g.maxr + 1; r++) for (int q = g.minq - 1; q <= g.maxq + 1; q++) {
     int i = IDX(q, r); uint8_t c = g.g[i];
@@ -112,7 +128,7 @@ inline double positional(Game& g, int S, const Params& P) {
     }
   }
   int O = 1 - S;
-  return P.expo * (expo[O] * g.stars[S] - expo[S] * g.stars[O]) + P.mob * (front[S] - front[O]);
+  return extra + P.expo * (expo[O] * g.stars[S] - expo[S] * g.stars[O]) + P.mob * (front[S] - front[O]);
 }
 
 // Attack cells: empty cells next to Y stars (mode 0) or next to Y stars / Y plains touching Y stars (mode 1).
@@ -490,15 +506,78 @@ inline double deepOpp(Game& g, int S, const Params& P, int K1, int K2, const std
   return best;
 }
 
+// Stars of Y that can ever be captured: connected through Y's non-wall cells to an empty cell.
+inline int vulnerableStars(Game& g, int Y, int reach = 0) {
+  std::vector<int> st, stars; uint32_t gm = g.nextGen();
+  for (int r = g.minr; r <= g.maxr; r++) for (int q = g.minq; q <= g.maxq; q++) {
+    int i = IDX(q, r); uint8_t c = g.g[i];
+    if (!c || cseat(c) != Y || ckind(c) == WALL) continue;
+    for (int d = 0; d < 6; d++) if (!g.g[i + ND[d]]) { g.seen[i] = gm; st.push_back(i); break; }
+  }
+  int n = 0;
+  while (!st.empty()) {
+    int i = st.back(); st.pop_back();
+    if (ckind(g.g[i]) == STAR) { if (reach <= 0) n++; else stars.push_back(i); }
+    for (int d = 0; d < 6; d++) {
+      int x = i + ND[d]; uint8_t c = g.g[x];
+      if (c && cseat(c) == Y && ckind(c) != WALL && g.seen[x] != gm) { g.seen[x] = gm; st.push_back(x); }
+    }
+  }
+  for (int i : stars) if (nearDist(g, 1 - Y, i, reach) <= reach) n++;
+  return n;
+}
+
+// Capture targets for X: enemy stars whose empty (or erasable) neighbour is reachable from X's frontier
+// by a path of at most L empty hexes (BFS over empty cells; a connected blueprint can snake).
+inline int reachableTargets(Game& g, int X, int L) {
+  int Y = 1 - X, M = L + 2;
+  int q0 = std::max(-SAFE, g.minq - M), q1 = std::min(SAFE, g.maxq + M), r0 = std::max(-SAFE, g.minr - M), r1 = std::min(SAFE, g.maxr + M);
+  static thread_local std::vector<uint8_t> dist; if (dist.empty()) dist.assign(G * G, 255);
+  std::vector<int> touched, cur, nxt;
+  auto inBox = [&](int i) { int q = QOF(i), r = ROF(i); return q >= q0 && q <= q1 && r >= r0 && r <= r1; };
+  for (int r = g.minr - 1; r <= g.maxr + 1; r++) for (int q = g.minq - 1; q <= g.maxq + 1; q++) {
+    int i = IDX(q, r); if (g.g[i] || dist[i] != 255) continue;
+    for (int d = 0; d < 6; d++) { uint8_t c = g.g[i + ND[d]]; if (c && cseat(c) == X) { dist[i] = 1; touched.push_back(i); cur.push_back(i); break; } }
+  }
+  for (int lev = 1; lev < L && !cur.empty(); lev++) {
+    nxt.clear();
+    for (int i : cur) for (int d = 0; d < 6; d++) {
+      int x = i + ND[d]; if (g.g[x] || dist[x] != 255 || !inBox(x)) continue;
+      dist[x] = lev + 1; touched.push_back(x); nxt.push_back(x);
+    }
+    cur.swap(nxt);
+  }
+  int n = 0;
+  for (int r = g.minr; r <= g.maxr; r++) for (int q = g.minq; q <= g.maxq; q++) {
+    int i = IDX(q, r); uint8_t c = g.g[i];
+    if (!c || cseat(c) != Y || ckind(c) != STAR) continue;
+    bool ok = false;
+    for (int d = 0; d < 6 && !ok; d++) {
+      int x = i + ND[d]; uint8_t cx = g.g[x];
+      if (!cx) { if (dist[x] != 255) ok = true; }
+      else if (cseat(cx) == Y && ckind(cx) != WALL) {
+        for (int e = 0; e < 6; e++) { int y = x + ND[e]; if (!g.g[y] && dist[y] != 255 && dist[y] < L) { ok = true; break; } }
+      }
+    }
+    if (ok) n++;
+  }
+  for (int i : touched) dist[i] = 255;
+  return n;
+}
+
 struct SearchResult { std::string move, json; double eval = 0; };
 
-struct Combo { int i, j; double val = -1e18; bool done = false; Move r1, r2; double deep = -1e18; bool verified = false; };
+struct Combo { int i, j; double val = -1e18; bool done = false; Move r1, r2; double deep = -1e18; bool verified = false; int myPts = 0, lost = 0; };
 
-inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params& P,
+inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params& P0,
                                const std::vector<std::string>& allowed, bool verbose, std::mt19937_64* rng = nullptr,
                                const std::string& bookMove = "") {
   auto t0 = Clock::now();
   double budget = std::max(50.0, timeMs * 0.92 - 30);
+  Params P = P0;
+  if (P.vulnK > 0) for (int x = 0; x < 2; x++)
+    P.starScale[x] = std::max(P.minScale, std::min(1.0, (P.reachL > 0 ? reachableTargets(root, x, P.reachL) : vulnerableStars(root, 1 - x, P.reachD)) / (double)P.vulnK));
+  if (verbose) fprintf(stderr, "starScale %.2f %.2f\n", P.starScale[0], P.starScale[1]);
   SearchResult res;
   if (root.ply >= TOTAL_PLIES) return res;
   int S = turnOf(root.ply), O = 1 - S, L = movesLeftInTurn(root.ply);
@@ -532,7 +611,8 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   std::vector<int> ord(n1); std::iota(ord.begin(), ord.end(), 0);
   std::stable_sort(ord.begin(), ord.end(), [&](int a, int b) { return ov[a] > ov[b]; });
   bool haveBook = false;
-  if (!bookMove.empty()) {
+  // Abandon the book once the opponent has scored against us (they attack instead of building).
+  if (!bookMove.empty() && (P.bookYield < 1 || root.score[O] == 0)) {
     for (int k = 0; k < n1; k++) if (root.moveStr(A[ord[k]]) == bookMove) {
       int x = ord[k]; ord.erase(ord.begin() + k); ord.insert(ord.begin(), x); haveBook = true; break;
     }
@@ -560,14 +640,17 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
     g.apply(A[ord[c.i]], u1);
     if (two) g.apply(second[c.i][c.j], u2);
     double v;
+    c.myPts = g.score[S] - root.score[S];
     if (g.ply >= TOTAL_PLIES) v = staticEval(g, S, P);
     else {
       int LO = movesLeftInTurn(g.ply);
       Reply rp = replySearch(g, O, LO, P);
       c.r1 = rp.m1; c.r2 = rp.m2;
       Undo a, b;
+      int starsBefore = g.stars[S];
       if (rp.m1.type != 2) g.apply(rp.m1, a);
       if (rp.m2.type != 2) g.apply(rp.m2, b);
+      c.lost = starsBefore - g.stars[S];
       v = leafS(g, S, P);
       if (rp.m2.type != 2) g.undo(b);
       if (rp.m1.type != 2) g.undo(a);
@@ -583,7 +666,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   const int NST = 16;
   int stage = 0;
   for (; stage < NST; stage++) {
-    if (msSince(t0) > budget * (P.verify ? P.widenFrac : 0.6) && stage > 0) break;
+    if (msSince(t0) > budget * (P.verify ? P.widenFrac : P.widenStop) && stage > 0) break;
     int K1 = std::min({K1s[stage], n1, L >= 2 ? P.maxK1 : 100000});
     if (L < 2) K1 = std::min(n1, K1s[stage] * 4);
     std::vector<int> needSecond;
@@ -645,10 +728,19 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   bool bookPlayed = false;
   if (haveBook) {
     for (int k : doneIdx) if (combos[k].i == 0) {
-      if (combos[k].val >= combos[bi].val - P.bookMargin) { bi = k; bookPlayed = true; }
+      const Combo& bc = combos[k]; const Combo& be = combos[bi];
+      // Tactics override the book: never let the book concede stars the best line keeps, or skip our capture.
+      bool tactical = false;
+      if (P.bookYield == 1) tactical = (bc.lost > be.lost) || (be.myPts > bc.myPts);
+      if (P.bookYield >= 2) tactical = (bc.lost > 0) || (bc.lost > be.lost) || (be.myPts > bc.myPts) || (be.myPts > 0);
+      if (!tactical && bc.val >= be.val - P.bookMargin) { bi = k; bookPlayed = true; }
       break;
     }
-    if (verbose) fprintf(stderr, "book %s %s\n", bookMove.c_str(), bookPlayed ? "played" : "overridden");
+    if (verbose) {
+      int kb = -1; for (int k : doneIdx) if (combos[k].i == 0) { kb = k; break; }
+      if (kb >= 0) fprintf(stderr, "book %s %s (book val %.1f lost %d pts %d | best val %.1f lost %d pts %d)\n", bookMove.c_str(), bookPlayed ? "played" : "overridden",
+        combos[kb].val, combos[kb].lost, combos[kb].myPts, combos[doneIdx[0]].val, combos[doneIdx[0]].lost, combos[doneIdx[0]].myPts);
+    }
   }
   if (!bookPlayed && rng && root.ply < P.openPlies && P.openRand > 1) {
     // pick among top distinct first actions
@@ -677,7 +769,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   return res;
 }
 
-struct Book; std::string bookNext(const Book& B, const Game& g);
+struct Book; std::string bookNext(const Book& B, const Game& g, int myEdits);
 inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const Params& pb, uint64_t seed,
                        const Book* ba = nullptr, const Book* bb = nullptr) {
   std::atomic<int> next{0}; std::mutex mu;
@@ -700,7 +792,7 @@ inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const P
           if (!mv.empty()) { Undo u; Move m = mv[rng() % mv.size()]; moves += g.moveStr(m) + " "; g.apply(m, u); continue; }
         }
         const Book* bk = (s == aSeat) ? ba : bb;
-        std::string bm = bk ? bookNext(*bk, g) : std::string();
+        std::string bm = bk ? bookNext(*bk, g, -1) : std::string();
         SearchResult r = searchRoot(g, timeMs, innerThreads, P, none, false, &rng, bm);
         Move m;
         if (r.move.empty() || !g.parseMove(r.move, m)) { g.ply++; continue; }

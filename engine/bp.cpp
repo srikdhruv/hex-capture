@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     for (int seat = 0; seat < 2; seat++) {
       Game g; g.setup(); g.ply = seat == 0 ? 0 : 1;
       for (int k = 0; k < 30; k++) {
-        string m = bookNext(book, g);
+        string m = bookNext(book, g, -1);
         int d = book.hasTarget[seat] ? handDist(g.hands[seat], book.target[seat]) : -1;
         printf("seat %d step %d dist %d move %s\n", seat, k, d, m.c_str());
         if (m.empty()) break;
@@ -123,7 +123,17 @@ int main(int argc, char** argv) {
       return 0;
     }
     std::string bm;
-    try { bm = bookNext(book, gm); } catch (...) { bm.clear(); }
+    int myEdits = -1;
+    {
+      const JVal* hist = root.get("history");
+      if (!hist) hist = view->get("history");
+      if (hist && hist->t == JVal::ARR) {
+        myEdits = 0; int seat = turnOf(gm.ply);
+        for (size_t i = 0; i < hist->a.size(); i++)
+          if (turnOf((int)i) == seat && hist->a[i].t == JVal::STR && hist->a[i].s.find('>') != std::string::npos) myEdits++;
+      }
+    }
+    try { bm = bookNext(book, gm, myEdits); } catch (...) { bm.clear(); }
     SearchResult res = searchRoot(gm, timeMs, threads, pa, allowed, true, nullptr, bm);
     if (res.move.empty()) { if (fallback.empty()) fallback = "pass"; printFallback(fallback); return 0; }
     puts(res.json.c_str()); fflush(stdout);
