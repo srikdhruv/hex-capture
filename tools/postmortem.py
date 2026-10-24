@@ -33,7 +33,7 @@ import bprules as P  # noqa: E402
 import hexrender as H  # noqa: E402
 import advise as A  # noqa: E402
 
-ENGINE = os.path.join(REPO, "engine", "bp" + (".exe" if os.name == "nt" else ""))
+ENGINE = os.environ.get("BP_ENGINE") or os.path.join(REPO, "engine", "bp" + (".exe" if os.name == "nt" else ""))
 POS_DIR = os.path.join(REPO, "lab", "positions")
 NAMES = {0: "Blue", 1: "Red"}
 
