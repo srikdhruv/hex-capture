@@ -77,7 +77,7 @@ jobs:
           echo "BUILD_SHA = \"${GITHUB_SHA}\"" > client/_build.py
           pyinstaller --onefile --name "${{ matrix.asset }}" \
             --add-binary "engine/bp${EXE}:engine" \
-            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --hidden-import pilot --collect-data certifi \
+            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --hidden-import pilot --hidden-import play --collect-data certifi \
             --paths client client/bot.py
           ls -la dist
 
@@ -90,6 +90,26 @@ jobs:
           "./dist/${{ matrix.asset }}${EXE}" --selftest 2 --advise --move-time-ms 300 2>&1 | tee advise.txt
           grep -q "Top moves" advise.txt
           test "$("./dist/${{ matrix.asset }}${EXE}" --version | tr -d '\r')" = "${GITHUB_SHA}"
+
+      - name: Smoke test (--play a full scripted game via stdin, then --replay it)
+        shell: bash
+        run: |
+          EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
+          BIN="./dist/${{ matrix.asset }}${EXE}"
+          python tools/test_play.py --emit-script > play-script.txt
+          "$BIN" --play blue --time-ms 100 < play-script.txt 2>&1 | tr -d '\r' | tee play.txt | tail -n 40
+          grep -q "Not legal: there is no blueprint #9" play.txt
+          grep -q "Engine's top moves for you:" play.txt
+          grep -q "Took back your last turn." play.txt
+          grep -q "^Engine plays " play.txt
+          grep -q "GAME OVER:" play.txt
+          if grep -e "engine not found" -e "engine failed" play.txt; then exit 1; fi
+          SAVED="$(sed -n 's/^Saved game to //p' play.txt | head -1)"
+          test -n "$SAVED"
+          "$BIN" --replay "$SAVED" 2>&1 | tr -d '\r' | tee replay.txt | tail -n 3
+          grep -q "Final: Blue" replay.txt
+          printf 'quit\n' | "$BIN" --play red --level easy > quit.txt 2>&1
+          grep "Engine plays" quit.txt && grep "Game stopped at ply 1" quit.txt
 
       - uses: actions/upload-artifact@v4
         with:

@@ -2,6 +2,7 @@
 # One-command launcher for the Blueprints bot (macOS / Linux):
 #   curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh | bash
 # Extra bot options:  curl -fsSL .../run.sh | bash -s -- --save-token
+# Play against the engine locally (no account/token):  curl -fsSL .../run.sh | bash -s -- --play
 # Downloads the right prebuilt "hexbot" into ~/.hexbot/ (re-downloads when a newer release exists) and runs it.
 set -euo pipefail
 REPO="srikdhruv/hex-capture"
@@ -31,7 +32,9 @@ if [ "$os" = "Darwin" ] && command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$bin" 2>/dev/null || true
 fi
 echo "Starting hexbot (Ctrl+C to stop). Logs: $DIR/logs" >&2
-if [ ! -t 0 ] && (exec </dev/tty) 2>/dev/null; then
+# Piped launch (curl | bash): our stdin is this script, so give the bot the terminal for prompts and --play
+# moves. When run from a file (bash run.sh ... < moves.txt) keep the caller's stdin.
+if [ ! -t 0 ] && [ -z "${BASH_SOURCE[0]:-}" ] && (exec </dev/tty) 2>/dev/null; then
   exec "$bin" "$@" < /dev/tty
 else
   exec "$bin" "$@"

@@ -1,5 +1,7 @@
 # One-command launcher for the Blueprints bot (Windows):
 #   powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1 | iex"
+# Play against the engine locally (no account/token):
+#   powershell -ExecutionPolicy Bypass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1))) --play"
 # Downloads hexbot-windows-x64.exe into %USERPROFILE%\.hexbot\ (re-downloads when a newer release exists) and runs it.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'

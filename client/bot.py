@@ -18,6 +18,9 @@ Emergency mode: with < 10s on our clock, think at most 1000ms; with < 2.5s, move
 Usage:
   python3 client/bot.py [--dry-run] [--move-time-ms N] [--engine CMD] [--tournament ID | --no-tournament]
   python3 client/bot.py --selftest [N]      # offline: plays N plies locally through the same move pipeline
+  python3 client/bot.py --play [blue|red|random] [--level easy|normal|hard | --time-ms N]
+                                            # offline: you vs the engine in the terminal (no account/token)
+  python3 client/bot.py --replay FILE       # view a saved --play game (~/.hexbot/games/local-*.json)
 """
 import argparse
 import json
@@ -864,6 +867,51 @@ def selftest(chooser, plies, show_advice=False, pilot=None):
     log("moves:", " ".join(moves))
 
 
+def local_engine(engine_spec):
+    """engine(view, time_ms) -> info dict for the offline --play game: bundled engine, else the Python fallback."""
+    chooser = Chooser(engine_spec, 3000)
+    warned = []
+
+    def pick(view, time_ms):
+        state = {"you": [view["turn"]], "turn": view["turn"], "ply": view["ply"], "view": view}
+        legal = set(view.get("moves") or [])
+        if chooser.engine_available():
+            try:
+                res = _run_policy(chooser.cmd, state, time_ms, time_ms / 1000 + 10)
+                if res.get("move") in legal:
+                    return dict(res, source="engine")
+                for alt in res.get("top") or []:
+                    m = alt.get("move") if isinstance(alt, dict) else alt
+                    if m in legal:
+                        return dict(res, move=m, source="engine-top")
+            except Exception as e:  # noqa: BLE001
+                if not warned:
+                    warned.append(1)
+                    print(f"(engine failed: {type(e).__name__}: {str(e)[:200]}; using the simple fallback)", flush=True)
+        elif not warned:
+            warned.append(1)
+            print(f"(engine not found at {chooser.cmd[0]}; using the simple fallback)", flush=True)
+        return {"move": bprules.best_capture_move(view), "top": [], "source": "py-fallback"}
+    return pick
+
+
+def run_play(args):
+    import play
+    if os.name == "nt":
+        os.system("")  # enable ANSI colours in the Windows console
+    if args.replay:
+        try:
+            play.replay(args.replay)
+        except (OSError, ValueError) as e:
+            raise SystemExit(f"cannot replay {args.replay}: {e}")
+        return
+    side = args.play or "random"
+    human = random.randint(0, 1) if side == "random" else play.SEATS[side]
+    time_ms = args.time_ms if args.time_ms else play.LEVELS[args.level]
+    level = None if args.time_ms else args.level
+    play.LocalGame(local_engine(args.engine), human, time_ms, level=level, build=BUILD_SHA[:12]).run()
+
+
 def get_token(args):
     """Token from STRATEGYJAM_TOKEN, else ~/.hexbot/token (only if saved with --save-token), else a hidden prompt."""
     token = os.environ.get("STRATEGYJAM_TOKEN", "").strip()
@@ -1007,7 +1055,16 @@ def main():
     ap.add_argument("--no-tournament", action="store_true", help="only standalone challenges / self-test games")
     ap.add_argument("--selftest", type=int, nargs="?", const=12, default=None, metavar="PLIES",
                     help="offline: play PLIES plies locally through the move pipeline (no network)")
+    ap.add_argument("--play", nargs="?", const="random", default=None, choices=["blue", "red", "random"],
+                    help="offline: play against the engine in this terminal as blue, red or random (default)")
+    ap.add_argument("--level", choices=["easy", "normal", "hard"], default="normal",
+                    help="--play engine strength: easy/normal/hard = 500/3000/8000 ms per action")
+    ap.add_argument("--time-ms", type=int, default=None, help="--play engine think time per action (overrides --level)")
+    ap.add_argument("--replay", metavar="FILE", help="view a saved --play game (~/.hexbot/games/local-*.json)")
     args = ap.parse_args()
+    if args.play is not None or args.replay:
+        run_play(args)
+        return
     if args.no_update:
         os.environ["HEXBOT_NO_UPDATE"] = "1"
     updater.cleanup_old()
