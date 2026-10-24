@@ -1,0 +1,8 @@
+Pilot notes (live co-play, Swiss R9-R14 + knockout)
+====================================================
+Knobs: control.json {"engine_args","force","veto","prefer_wait_ms","note"}; engine_args apply from the NEXT engine call.
+Engine knobs: alpha (star value/ply), beta, bookMargin, hw, minScale/vulnK/reachD (enemy-star scaling), --nobook.
+
+R8 (lost 0-84 as Red vs Eris, wall turtle): opp kept 6 stars sealed by ~96 walls (3-wall line stamps),
+attacked with a 6-plain line; ate 14 of our stars at x6. Our 157 stars were pure liability.
+Lesson: once enemy stars are sealed, alpha->0 and keep our stars out of reach of their longest piece.
