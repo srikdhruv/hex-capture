@@ -1,0 +1,57 @@
+SCOUT REPORT: 3 games, 6 player-games; standings snapshot after round 9
+
+group      n  win%  openEdits 1stStamp walls@40 walls@end seal@40 seal@60 sealedPly(%sealed) 1stCap snipes wallOnly pts(open/race/mid/end)
+unranked    3   67       4.7      4.3     36.0     81.3    57.3    51.3      64.0(33%)   17.7    5.3     20.3 43.3/296.7/155.3/52.3
+winners     2  100       6.0      6.5     28.5     87.5    38.5    30.0      64.0(50%)   22.5    8.0     30.5 9.0/52.5/4.5/54.0
+losers      1    0       2.0      0.0     51.0     69.0    95.0    94.0      None(0%)    8.0    0.0      0.0 112.0/785.0/457.0/49.0
+US(srik)    3   33       9.0     26.0     23.0     78.0    95.5    90.0      None(0%)   31.0    3.3      1.0 2.0/480.7/869.7/536.0
+
+PER PLAYER-GAME (sorted by standing):
+
+#- Eris (B, R8) W 84-0 vs srik (#-)
+   opening[6 edits, 1st stamp ply 7]: 1:0,1>3:-2,1 1:1,0>1:2,1 1:0,0>1:3,1 1@-2,2 1@3,2 2:0,0>1:5,0 1@0,-2 1:1,1>1:1,0 1:0,1>1:-1,0 1@2,1
+   hand@20: 7c:0s1w6p | 6c:4s2w0p | 8c:2s0w6p   final: 6c:0s0w6p | 3c:0s3w0p | 12c:6s0w6p
+   walls@20/40/60/80/end: [5, 12, 21, 36, 96]  seal-need@20/40/60/80/end: [45, 61, 57, 47, 11]  sealed@None (opp sealed@None)
+   stars@20/40/60/end: [6, 6, 6, 6] (open [3, 3, 3, 0]) opp [3, 0, 30, 157]
+   1st capture ply 19 (1@2,1), 1st conceded None; caps 11, snipes 7, stars taken 14; pts/phase {'open': 18, 'race': 48, 'mid': 0, 'end': 18} opp {'open': 0, 'race': 0, 'mid': 0, 'end': 0}
+   stamps 45 edits 15 passes 0 wall-only 34; comps [('3c:0s3w0p', 21), ('7c:0s1w6p', 9), ('2c:0s2w0p', 8), ('1c:0s1w0p', 5)]; big caps [(18, 19, '1@2,1'), (12, 52, '2@9,5'), (6, 112, '2@4,5')]
+
+#- srik (R, R8) L 0-84 vs Eris (#-)
+   opening[10 edits, 1st stamp ply 42]: 2:1,0>2:-1,0 2:1,2>2:-1,2 2:2,1>1:2,1 3:0,1>1:0,3 3:0,0>3:-2,1 1:1,0>2:2,-1 3:0,0>3:-4,1 1:0,0>2:-1,0 1:3,0>2:1,2 1:2,0>2:-2,4
+   hand@20: 5c:2s0w3p | 10c:4s3w3p | 6c:0s0w6p   final: 4c:1s0w3p | 15c:4s2w9p | 2c:1s1w0p
+   walls@20/40/60/80/end: [3, 3, 18, 36, 72]  seal-need@20/40/60/80/end: [7, None, 63, 121, 203]  sealed@None (opp sealed@None)
+   stars@20/40/60/end: [3, 0, 30, 157] (open [3, 0, 8, 37]) opp [6, 6, 6, 6]
+   1st capture ply None (None), 1st conceded 19; caps 0, snipes 0, stars taken 0; pts/phase {'open': 0, 'race': 0, 'mid': 0, 'end': 0} opp {'open': 18, 'race': 48, 'mid': 0, 'end': 18}
+   stamps 36 edits 24 passes 0 wall-only 3; comps [('16c:5s2w9p', 33), ('1c:0s1w0p', 3)]; big caps []
+
+#- srik (B, R9) L 52-156 vs aryan (#-)
+   opening[9 edits, 1st stamp ply 19]: 3:1,1>2:2,-1 3:1,0>2:0,1 3:0,0>2:-1,0 3:0,0>2:-3,2 3:-1,1>2:-3,3 3:0,1>2:-2,1 1:1,1>2:-1,4 1:1,0>2:0,3 1:0,0>2:-2,4 2@-1,1
+   hand@20: 4c:1s0w3p | 16c:4s3w9p | 1c:1s0w0p   final: 3c:1s0w2p | 16c:4s3w9p | 2c:1s0w1p
+   walls@20/40/60/80/end: [6, 36, 51, 75, 93]  seal-need@20/40/60/80/end: [35, 102, 110, 131, 138]  sealed@None (opp sealed@64)
+   stars@20/40/60/end: [10, 48, 70, 144] (open [3, 5, 8, 19]) opp [10, 10, 9, 30]
+   1st capture ply 44 (3@2,1), 1st conceded 26; caps 1, snipes 1, stars taken 1; pts/phase {'open': 0, 'race': 52, 'mid': 0, 'end': 0} opp {'open': 0, 'race': 57, 'mid': 9, 'end': 90}
+   stamps 44 edits 16 passes 0 wall-only 0; comps [('16c:4s3w9p', 19), ('17c:5s3w9p', 7), ('4c:2s0w2p', 7), ('17c:4s3w10p', 4)]; big caps [(52, 44, '3@2,1')]
+
+#- aryan (R, R9) W 156-52 vs srik (#-)
+   opening[6 edits, 1st stamp ply 6]: 2:1,0>2:-1,0 2:0,2>1:2,1 2:1,0>1:3,1 2@8,1 2:2,1>1:4,1 2:1,2>2:-1,2 2@10,-3 2@8,3 2:1,1>1:5,1 2@12,-5
+   hand@20: 11c:5s0w6p | 3c:0s3w0p | 7c:1s0w6p   final: 5c:5s0w0p | 2c:0s2w0p | 14c:1s1w12p
+   walls@20/40/60/80/end: [15, 45, 63, 72, 79]  seal-need@20/40/60/80/end: [28, 16, 3, 0, 0]  sealed@64 (opp sealed@None)
+   stars@20/40/60/end: [10, 10, 9, 30] (open [5, 3, 0, 0]) opp [10, 48, 70, 144]
+   1st capture ply 26 (2@3,5), 1st conceded 44; caps 9, snipes 9, stars taken 11; pts/phase {'open': 0, 'race': 57, 'mid': 9, 'end': 90} opp {'open': 0, 'race': 52, 'mid': 0, 'end': 0}
+   stamps 36 edits 24 passes 0 wall-only 27; comps [('2c:0s2w0p', 16), ('3c:0s3w0p', 11), ('5c:5s0w0p', 3), ('4c:1s3w0p', 2)]; big caps [(40, 105, '2@-2,5'), (30, 118, '2@-14,6'), (20, 102, '2@-2,6')]
+
+#- wernerolaf (B, R10) L 1403-5613 vs srik (#-)
+   opening[2 edits, 1st stamp ply 0]: 2@-6,-4 2@-9,2 2@1,-3 3:0,1>2:-2,3 2@4,-4 2@7,-4 2@10,-4 1:0,1>2:0,-1 2@7,0 2@5,5
+   hand@20: 6c:0s0w6p | 9c:6s3w0p | 6c:0s0w6p   final: 7c:3s0w4p | 10c:3s3w4p | 4c:0s0w4p
+   walls@20/40/60/80/end: [27, 51, 63, 69, 69]  seal-need@20/40/60/80/end: [69, 95, 94, 117, 122]  sealed@None (opp sealed@None)
+   stars@20/40/60/end: [44, 71, 75, 31] (open [34, 44, 40, 17]) opp [10, 38, 51, 96]
+   1st capture ply 8 (2@4,-4), 1st conceded 18; caps 21, snipes 0, stars taken 23; pts/phase {'open': 112, 'race': 785, 'mid': 457, 'end': 49} opp {'open': 6, 'race': 1390, 'mid': 2609, 'end': 1608}
+   stamps 34 edits 26 passes 0 wall-only 0; comps [('9c:6s3w0p', 10), ('4c:0s0w4p', 7), ('10c:6s3w1p', 4), ('7c:4s3w0p', 3)]; big caps [(142, 40, '1@13,-1'), (85, 52, '1@13,-5'), (85, 51, '1@16,-7')]
+
+#- srik (R, R10) W 5613-1403 vs wernerolaf (#-)
+   opening[8 edits, 1st stamp ply 17]: 3:1,1>2:2,1 3:1,0>2:2,0 3:0,0>2:1,2 3:0,0>2:0,-1 3:-1,1>2:1,0 3:0,1>2:-1,1 1:1,1>2:-2,4 1:1,0>2:-2,3 2@14,-5 2@9,2
+   hand@20: 5c:1s0w4p | 15c:4s3w8p | 1c:1s0w0p   final: 4c:1s0w3p | 16c:4s3w9p | 1c:1s0w0p
+   walls@20/40/60/80/end: [9, 30, 42, 51, 69]  seal-need@20/40/60/80/end: [57, 89, 97, 109, 114]  sealed@None (opp sealed@None)
+   stars@20/40/60/end: [10, 38, 51, 96] (open [4, 10, 12, 25]) opp [44, 71, 75, 31]
+   1st capture ply 18 (2@9,2), 1st conceded 8; caps 45, snipes 9, stars taken 101; pts/phase {'open': 6, 'race': 1390, 'mid': 2609, 'end': 1608} opp {'open': 112, 'race': 785, 'mid': 457, 'end': 49}
+   stamps 47 edits 13 passes 0 wall-only 0; comps [('15c:4s3w8p', 20), ('5c:1s0w4p', 13), ('1c:1s0w0p', 9), ('4c:1s0w3p', 3)]; big caps [(344, 106, '1@2,9'), (324, 98, '2@17,1'), (255, 102, '1@9,-5')]
