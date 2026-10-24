@@ -2,7 +2,42 @@
 
 > Tournament: Fall 2026 Strategy Jam, 14 Swiss rounds at 1 min + 15 s/move, then top-16 knockout at 1 min + 25 s.
 > Rules source: exact port of the official game code in `reference/rules.mjs`.
-> Status: v0 (rules + first-principles strategy). Lab results and engine findings will be merged in as they arrive.
+> Status: v1 (lab + engine findings merged; read 0a / 0b / 0 first). Lab results and engine findings will be merged in as they arrive.
+
+## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
+
+- **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
+- **Restructure the other two blueprints:**
+  - one **long piece** for infiltration and reach;
+  - one **defensive "slither"** (a snake shape) that **carries the 3 walls** as shields.
+- Between them the two non-star pieces should cover **short and long, vertical and horizontal** shapes, so something always fits the hole you need.
+- Exact edit sequences per colour and test results will go in `lab/HAND_PLAN.md`.
+- **Caution from Lab #2 (n=64 bot games):** stacking only the stars (6 stars + 3 walls in #2, nothing else changed) **lost 19–45** to the no-edit baseline.
+  The stacking side finished with more stars (237 vs 166) but lost 99 stars to captures, against 59.
+  The reason: a 6-star stamp leaves 5 stars on its edge, while the standard flower leaves 3 on the edge and 1 safe in the centre. More edge stars means more targets.
+  **So stacking only pays if those stamps are protected** — by distance, by the wall slither, or with plains as a buffer. Your full plan, with the slither and the probe, is being tested now.
+
+## 0. TL;DR — play this way (updated with lab data)
+
+1. **Stamp blueprint #2 (the 4-star flower) almost every action.** In strong bot-vs-bot games nearly every action is a #2 stamp:
+   it adds +4 to your multiplier *and* it is your main attacker. Final star counts reach ~75–200 per side, so a late star capture is worth 75–200 points.
+2. **Before every stamp, run the threat check:** *"After my turn, can the enemy touch any of my edge stars with 1–2 stamps?"*
+   A bot that skipped this check lost 27 of 30 games.
+3. **If a stamp can also take a star, take it.** Capture-leaning bots beat pure hoarders 73% vs 40% (n=30 each).
+   Best case: grow and capture with the same #2 stamp, placed so that one of its cells touches an exposed enemy star.
+4. **Blue's first move: don't drop #2 near the middle.** These first moves lose a star to Red's first turn:
+   `2@1,-3 2@-1,1 2@-1,-4 2@-4,2 2@-3,-3 2@-3,-4 2@-2,-4 2@-5,1 2@-5,2 2@-6,2`.
+5. **Hypothesis, being tested: put all 6 stars in #2.** On a quiet turn, spend 2 edits moving the centre stars of #1 and #3 into #2.
+   #1 and #3 stay connected as plain rings. #2 then gives +6 stars per stamp instead of +4: about +100 multiplier over a game for 2 actions.
+   Attach each new star where it touches the most of #2's own walls and stars, so it is not exposed.
+6. **Clock: the +15 s increment comes once per 2-action turn, not per action.** Budget about 7 s per action, or you will drain.
+
+## 0b. Reach rule (exact lab test, against the standard 7-hex flowers)
+
+- An edge star **within 4 hexes** of an enemy cell can be captured by **one** enemy action.
+- **Within 7 hexes**, it can be captured by a **2-action turn**.
+- **8 or more hexes from every enemy cell = safe for one turn.**
+- Long probe pieces add their length to these numbers, so always check the enemy's longest blueprint.
 
 ## 1. Rules in 30 seconds (the parts that decide games)
 
@@ -29,30 +64,6 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
 - Capturing one enemy star is worth *twice*: you score your multiplier now, and their multiplier drops by 1 for the rest of the game.
 - Losing a star is the mirror image. **A star you can't defend is a gift to the opponent.**
 - Captures late in the game are worth the most (multipliers are big), and there is no time left to retaliate.
-
-## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
-
-- **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
-- **Restructure the other two blueprints:**
-  - one **long piece** for infiltration and reach;
-  - one **defensive "slither"** (a snake shape) that **carries the 3 walls** as shields.
-- Between them the two non-star pieces should cover **short and long, vertical and horizontal** shapes, so something always fits the hole you need.
-- Exact edit sequences per colour and test results will go in `lab/HAND_PLAN.md`.
-
-## 0. TL;DR — play this way (updated with lab data)
-
-1. **Stamp blueprint #2 (the 4-star flower) almost every action.** In strong bot-vs-bot games nearly every action is a #2 stamp:
-   it adds +4 to your multiplier *and* it is your main attacker. Final star counts reach ~75–200 per side, so a late star capture is worth 75–200 points.
-2. **Before every stamp, run the threat check:** *"After my turn, can the enemy touch any of my edge stars with 1–2 stamps?"*
-   A bot that skipped this check lost 27 of 30 games.
-3. **If a stamp can also take a star, take it.** Capture-leaning bots beat pure hoarders 73% vs 40% (n=30 each).
-   Best case: grow and capture with the same #2 stamp, placed so that one of its cells touches an exposed enemy star.
-4. **Blue's first move: don't drop #2 near the middle.** These first moves lose a star to Red's first turn:
-   `2@1,-3 2@-1,1 2@-1,-4 2@-4,2 2@-3,-3 2@-3,-4 2@-2,-4 2@-5,1 2@-5,2 2@-6,2`.
-5. **Hypothesis, being tested: put all 6 stars in #2.** On a quiet turn, spend 2 edits moving the centre stars of #1 and #3 into #2.
-   #1 and #3 stay connected as plain rings. #2 then gives +6 stars per stamp instead of +4: about +100 multiplier over a game for 2 actions.
-   Attach each new star where it touches the most of #2's own walls and stars, so it is not exposed.
-6. **Clock: the +15 s increment comes once per 2-action turn, not per action.** Budget about 7 s per action, or you will drain.
 
 ## 3. Principles (v0, first-principles — refined below as data comes in)
 
