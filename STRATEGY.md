@@ -15,6 +15,12 @@ So games are decided early:
 - **The wall-only attacker:** R8's winner stamped a 3-wall line ("www") right next to our stars.
   Stamping walls erases neighbouring enemy cells the same as any stamp, but walls can never be erased back, and every stamp also extends the seal.
   Consider a wall piece for your own attacks; the lab is testing hands built around it.
+- **Walls are your most valuable cells** (player insight). They are permanent: they seal, block, slither and attack without ever being erased.
+  Spend them where they shut down enemy paths to your stars.
+- **The 2-cell blueprint is a Swiss-army knife** (player insight). Use action 1 to edit it into the orientation you need, then action 2 to place it exactly:
+  block a channel, plug the hole next to your star, extend your seal, or snipe. As a 2-wall "ww" domino it does all of this and can never be erased.
+- **Be annoying: deny space.** A stamp needs its whole footprint empty, so a few scattered cells — walls especially — stop the enemy's big pieces from fitting
+  and cut their paths to your stars.
 - Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
 
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
