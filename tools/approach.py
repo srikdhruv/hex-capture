@@ -4,7 +4,8 @@
   python3 tools/approach.py <decision.json | state.json | game log --ply N | lab/positions/X.json> [--depth 4]
 
 Beam search over OUR moves only (the opponent is ignored) for up to --depth actions (default 4 = 2 turns).
-Placements are the main moves; edits that lengthen our longest piece are also tried, with a penalty.
+Placements are the main moves. Edits are tried too (penalised): ones that lengthen our longest piece, and
+reshaping/shrinking ones (e.g. a 1-3 cell probe) whose next placement would get closer to a crack (D_pot).
 Each node is scored on:
   D        distance-to-crack: cost from our frontier to the nearest enemy star hole (empty hex = 1; an enemy
            non-wall hex = L, i.e. it must be erased with one stamp; a shield cell next to the star = L + 1),
@@ -114,12 +115,33 @@ def our_ply_sequence(ply, us, n):
 
 def score(node, L):
     D = node["D"]
+    if node.get("D_pot") is not None and node["D_pot"] + L < D:
+        D = node["D_pot"] + L  # one more action (the placement) after this edit
     acts = math.ceil(D / L) if D != math.inf else 99
     return (W_CAPTURE * node["captured"] - W_ACT * acts - W_D * (D if D != math.inf else 99)
             - W_EXPOSED * node["exposed"] - W_EDIT * node["edits"] + W_STAR * node["stars_added"])
 
 
-def expand(node, us, them, zone, deadline, allow_edits):
+def child_D(stamped, removed, f, L, enemy_stars, base):
+    """Estimated distance-to-crack after a stamp (field of the parent; erasures adjusted)."""
+    sig = {k for k, _ in stamped}
+    dmin = base
+    for k, _ in stamped:
+        if k in f and f[k] <= 1:  # stamped straight into a hole
+            return 0
+        for n in P.neighbors(k):
+            v = f.get(n)
+            if v is not None and n not in sig and v < dmin:
+                dmin = v
+    for r in removed:  # erased enemy cells become empty: crossing costs 1, not L; an erased shield is a hole
+        v = f.get(r)
+        if v is not None and r not in enemy_stars:
+            shield = any(n in enemy_stars for n in P.neighbors(r))
+            dmin = min(dmin, v - L if shield else v - L + 1)
+    return dmin
+
+
+def expand(node, us, them, zone, deadline, allow_edits, edit_budget_s=0.0):
     st = node["state"]
     cells = st["cells"]
     hand = st["blueprints"][us]
@@ -142,19 +164,7 @@ def expand(node, us, them, zone, deadline, allow_edits):
                 continue
             seen.add(sig)
             cap = sum(1 for k in removed if k in enemy_stars)
-            dmin = node["D"]
-            for k, _ in stamped:
-                for n in P.neighbors(k):
-                    v = f.get(n)
-                    if v is not None and n not in sig and v < dmin:
-                        dmin = v
-                if k in f and f[k] <= 1:  # stamped straight into a hole
-                    dmin = min(dmin, 0)
-            for r in removed:  # erased enemy cells become empty: crossing costs 1, not L; an erased shield is a hole
-                v = f.get(r)
-                if v is not None and r not in enemy_stars:
-                    shield = any(n in enemy_stars for n in P.neighbors(r))
-                    dmin = min(dmin, v - L if shield else v - L + 1)
+            dmin = child_D(stamped, removed, f, L, enemy_stars, node["D"])
             new_stars = [k for k, v in stamped if v == P.STAR]
             exposed = sum(1 for k in new_stars if any(n in zone for n in P.neighbors(k)))
             kids.append({"moves": node["moves"] + [m], "parent": node, "pending": (i, at, removed),
@@ -162,18 +172,39 @@ def expand(node, us, them, zone, deadline, allow_edits):
                          "exposed": node["exposed"] + exposed, "edits": node["edits"],
                          "stars_added": node["stars_added"] + len(new_stars), "L": L})
     if allow_edits:
-        for m in P.edit_moves(hand):
-            if time.time() > deadline:
+        # Edits: lengthen our longest piece, or reshape/shrink a piece (e.g. a 1-3 cell probe) so that its NEXT
+        # placement gets closer to a crack (D_pot). Probe-making edits are tried first, within the time budget.
+        edit_deadline = min(deadline, time.time() + edit_budget_s)
+        edits = P.edit_moves(hand)
+        def prio(m):
+            fr, to = m.split(">")
+            fi, ti = int(fr.split(":")[0]) - 1, int(to.split(":")[0]) - 1
+            return (len(hand[fi]) - 1 if fi != ti else 50, fi)
+        edits.sort(key=prio)
+        for m in edits:
+            if time.time() > edit_deadline:
                 break
             fr, to = m.split(">")
             fi, fk = fr.split(":")
             ti, tk = to.split(":")
-            new_hand = P.apply_edit(hand, (int(fi) - 1, fk), (int(ti) - 1, tk))
+            fi, ti = int(fi) - 1, int(ti) - 1
+            new_hand = P.apply_edit(hand, (fi, fk), (ti, tk))
             L2 = longest_span(new_hand)
-            if L2 <= L:
+            dpot = None
+            for i in ({fi, ti} if edit_budget_s > 0 else ()):
+                bp = new_hand[i]
+                if not bp:
+                    continue
+                for pm in P.place_moves(cells, front, bp, i):
+                    stamped, removed = P.stamp(cells, us, bp, P.parse(pm.split("@")[1]))
+                    dd = child_D(stamped, removed, f, L2, enemy_stars, math.inf)
+                    if dpot is None or dd < dpot:
+                        dpot = dd
+            useful = (dpot is not None and dpot < node["D"] - 1) or L2 > L
+            if not useful:
                 continue
             kids.append({"moves": node["moves"] + [m], "parent": node, "pending": ("edit", new_hand),
-                         "D": node["D"], "captured": node["captured"], "points": node["points"],
+                         "D": node["D"], "D_pot": dpot, "captured": node["captured"], "points": node["points"],
                          "exposed": node["exposed"], "edits": node["edits"] + 1,
                          "stars_added": node["stars_added"], "L": L2})
     return kids
@@ -215,12 +246,15 @@ def plan(view, seat, depth=4, beam=6, time_s=1.2, allow_edits=True):
     root = {"moves": [], "state": st, "D": D0, "captured": 0, "points": 0, "exposed": 0, "edits": 0,
             "stars_added": 0, "L": L0}
     frontier_nodes, best = [root], root
+    all_nodes = []
     plies = our_ply_sequence(st["ply"], us, depth)
     depth = min(depth, len(plies))
     for level in range(depth):
         kids = []
         for node in frontier_nodes:
-            kids += expand(node, us, them, zone, deadline, allow_edits and level == 0)
+            # root: full edit lookahead (probes/reshapes, ~25% of the budget); level 1: lengthening edits only
+            kids += expand(node, us, them, zone, deadline, allow_edits and level <= 1,
+                           edit_budget_s=time_s * 0.25 if level == 0 else 0.0)
             if time.time() > deadline:
                 break
         if not kids:
@@ -228,10 +262,17 @@ def plan(view, seat, depth=4, beam=6, time_s=1.2, allow_edits=True):
         kids.sort(key=lambda k: score(k, k["L"]), reverse=True)
         frontier_nodes = [materialize(k, us) for k in kids[:beam]]
         frontier_nodes.sort(key=lambda k: score(k, k["L"]), reverse=True)
+        all_nodes += frontier_nodes
         if score(frontier_nodes[0], frontier_nodes[0]["L"]) > score(best, best["L"]) or best is root:
             best = frontier_nodes[0]
         if time.time() > deadline:
             break
+    # A plan should not end on an edit when its follow-up placement was searched: take the best descendant.
+    if best["moves"] and ">" in best["moves"][-1]:
+        n = len(best["moves"])
+        desc = [x for x in all_nodes if len(x["moves"]) > n and x["moves"][:n] == best["moves"]]
+        if desc:
+            best = max(desc, key=lambda k: score(k, k["L"]))
     # Capture ply: first action in the plan that captured a star
     cap_ply = None
     node, chain = best, []
