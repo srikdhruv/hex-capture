@@ -36,6 +36,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import bprules  # noqa: E402  (pure-Python rules: offline self-test + no-dependency fallback policy)
+import updater  # noqa: E402  (in-session auto-update of the packaged executable)
+from updater import BUILD_SHA  # noqa: E402
 
 FROZEN = getattr(sys, "frozen", False)          # running as the PyInstaller "hexbot" executable
 BUNDLE = getattr(sys, "_MEIPASS", None)
@@ -201,8 +203,9 @@ def _engine_cmd(spec):
 
 def _run_policy(cmd, state, time_ms, hard_timeout_s):
     t0 = time.monotonic()
+    env = {k: v for k, v in os.environ.items() if k != "STRATEGYJAM_TOKEN"}  # the engine never sees the token
     proc = subprocess.run(cmd + ["--time-ms", str(int(time_ms))], input=json.dumps(state).encode(),
-                          capture_output=True, timeout=hard_timeout_s, cwd=REPO)
+                          capture_output=True, timeout=hard_timeout_s, cwd=REPO if os.path.isdir(REPO) else None, env=env)
     out = proc.stdout.decode(errors="replace").strip().splitlines()
     if proc.returncode != 0 and not out:
         raise RuntimeError(f"exit {proc.returncode}: {proc.stderr.decode(errors='replace')[-300:]}")
@@ -325,6 +328,11 @@ class Bot:
         self.logged_tournament_shape = False
         self.finished = set()
         self.room_round = {}     # room -> tournament round (for status lines)
+        self.last_seen = {}      # room -> time of the last pushed state
+        self.last_tstate = None  # last tournament state
+        self.token = token       # kept only to hand to an updated process via env
+        self.updater = updater.Updater(log)
+        self.reexec_target = None
         self.ws = None
 
         class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -398,6 +406,7 @@ class Bot:
     def on_state(self, room, state):
         jlog(room, {"type": "state", "state": state})
         view = state.get("view") or {}
+        self.last_seen[room] = time.time()
         if view.get("result") and room not in self.finished:
             self.finished.add(room)
             log(f"[{room}] game over: result={json.dumps(view.get('result'))} scores={view.get('scores')} you={state.get('you')}")
@@ -520,6 +529,7 @@ class Bot:
             self.logged_tournament_shape = True
             log("tournament state:", json.dumps({k: v for k, v in state.items() if k != "standings"})[:600])
         jlog(f"tournament-{tid}", {"type": "tournament", "state": state})
+        self.last_tstate = state
         key = (tid, state.get("round"))
         if state.get("status") == "playing" and state.get("active") and not state.get("withdrawn"):
             closes = state.get("closesAt")
@@ -594,8 +604,50 @@ class Bot:
         else:
             log("engine stream interrupted:", type(error).__name__, "- reconnecting with backoff")
 
+    def game_in_progress(self):
+        """True while any of our games is unfinished (or our next board is ready but not yet seen)."""
+        now = time.time()
+        with self.lock:
+            for room, st in self.latest.items():
+                if not (st.get("view") or {}).get("result") and st.get("you") and now - self.last_seen.get(room, 0) < 900:
+                    return True
+            t = self.last_tstate or {}
+            job = t.get("game") or {}
+            if job.get("ready") and job.get("room") and job.get("round") == t.get("round") and job["room"] not in self.finished:
+                seen = self.latest.get(job["room"])
+                if seen is None or not (seen.get("view") or {}).get("result"):
+                    return True
+        return False
+
+    def update_loop(self):
+        """Poll for a newer release every ~2 minutes, only between games; never update mid-game."""
+        if self.stopped.wait(15):
+            return
+        installed = None
+        while not self.stopped.is_set():
+            try:
+                if not self.game_in_progress():
+                    if installed is None:
+                        sha = self.updater.newer_available()
+                        if sha and not self.game_in_progress():
+                            exe = self.updater.install(sha)
+                            if exe:
+                                installed = (exe, sha)
+                    if installed and not self.game_in_progress():
+                        log(f"updated to {installed[1]}; restarting with the same settings")
+                        self.reexec_target = installed[0]
+                        self.stopped.set()
+                        if self.ws is not None:
+                            self.ws.close()
+                        return
+            except Exception as e:  # noqa: BLE001 - the updater must never take the bot down
+                log("update loop error:", type(e).__name__, e)
+            self.stopped.wait(120)
+
     def run(self):
         import websocket
+        if self.updater.enabled():
+            threading.Thread(target=self.update_loop, daemon=True, name="updater").start()
         backoff = 1
         try:
             while not self.stopped.is_set():
@@ -727,6 +779,9 @@ def detect_tournament(base):
 
 
 def main():
+    if "--version" in sys.argv[1:]:
+        print(BUILD_SHA)
+        return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="compute and log moves but never POST (no check-in, no moves)")
     ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "6500")),
@@ -738,10 +793,31 @@ def main():
                     help="tournament id (default: auto-detect the live Blueprints tournament)")
     ap.add_argument("--save-token", action="store_true", help="store the token in ~/.hexbot/token (0600) for next time")
     ap.add_argument("--forget-token", action="store_true", help="delete ~/.hexbot/token and exit")
+    ap.add_argument("--version", action="store_true", help="print the build sha and exit")
+    ap.add_argument("--no-update", action="store_true", help="disable in-session auto-update (env HEXBOT_NO_UPDATE=1)")
+    ap.add_argument("--self-update", action="store_true", help="update the packaged executable now (if newer) and exit")
     ap.add_argument("--no-tournament", action="store_true", help="only standalone challenges / self-test games")
     ap.add_argument("--selftest", type=int, nargs="?", const=12, default=None, metavar="PLIES",
                     help="offline: play PLIES plies locally through the move pipeline (no network)")
     args = ap.parse_args()
+    if args.no_update:
+        os.environ["HEXBOT_NO_UPDATE"] = "1"
+    updater.cleanup_old()
+    if os.environ.get("HEXBOT_UPDATED_FROM"):
+        log(f"updated to {BUILD_SHA} (from {os.environ.pop('HEXBOT_UPDATED_FROM')[:12]})")
+    else:
+        log(f"hexbot build {BUILD_SHA[:12]}")
+    if args.self_update:
+        up = updater.Updater(log)
+        sha = up.newer_available() if updater.FROZEN else None
+        if not sha:
+            print(f"up to date ({BUILD_SHA[:12]})" if updater.FROZEN else "not a packaged build; nothing to update")
+            return
+        exe = up.install(sha)
+        if exe:
+            print(f"updated to {sha}")
+            updater.reexec(exe, ["--version"], None, BUILD_SHA)
+        raise SystemExit(1)
     if args.forget_token:
         try:
             os.remove(TOKEN_FILE)
@@ -771,7 +847,10 @@ def main():
     if not args.no_tournament:
         tournament = args.tournament or detect_tournament(base) or DEFAULT_TOURNAMENT
         log("tournament:", tournament, "(override with TOURNAMENT_ID or --tournament; --no-tournament for challenges only)")
-    Bot(base, token, tournament, chooser, dry_run=args.dry_run).run()
+    bot = Bot(base, token, tournament, chooser, dry_run=args.dry_run)
+    bot.run()
+    if bot.reexec_target:
+        updater.reexec(bot.reexec_target, sys.argv[1:], token, BUILD_SHA)
 
 
 if __name__ == "__main__":

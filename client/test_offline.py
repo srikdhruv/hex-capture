@@ -142,6 +142,28 @@ def main():
     wait_for(lambda: len(calls) > n + 1)
     assert calls[n + 1][0] == "/api/engine/tournaments/tid123/move", calls[n + 1]
 
+    # Auto-update gating: roomB is mid-game -> busy; finished -> idle -> re-exec target set.
+    assert b.game_in_progress()
+
+    class FakeUp:
+        def newer_available(self):
+            return "f" * 40
+
+        def install(self, sha):
+            return "/tmp/hexbot-new"
+    b.updater = FakeUp()
+    b.stopped.wait = lambda t=None: b.stopped.is_set()  # no sleeping in the loop
+    calls_before = len(calls)
+    v_done = dict(v1, result={"winner": 1, "reason": "higher score"}, moves=[])
+    for room in ("roomA", "roomB", "selfR"):
+        b.on_message(ws, json.dumps({"type": "state", "room": room, "state": {"you": [1], "turn": 1, "ply": 120, "view": v_done}}))
+    assert not b.game_in_progress()
+    b.update_loop()
+    assert b.reexec_target == "/tmp/hexbot-new" and b.stopped.is_set()
+    assert len(calls) == calls_before
+    b.stopped.clear()
+    b.stopped.wait = threading.Event.wait.__get__(b.stopped)
+
     # Fatal close codes stop reconnecting.
     b.on_close(ws, 4003, "revoked")
     assert b.stopped.is_set()

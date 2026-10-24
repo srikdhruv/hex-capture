@@ -60,9 +60,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pyinstaller websocket-client certifi
           EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
+          echo "BUILD_SHA = \"${GITHUB_SHA}\"" > client/_build.py
           pyinstaller --onefile --name "${{ matrix.asset }}" \
             --add-binary "engine/bp${EXE}:engine" \
-            --hidden-import websocket --collect-data certifi \
+            --hidden-import websocket --hidden-import _build --collect-data certifi \
             --paths client client/bot.py
           ls -la dist
 
@@ -72,6 +73,7 @@ jobs:
           EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
           "./dist/${{ matrix.asset }}${EXE}" --selftest 3 --move-time-ms 300 2>&1 | tee smoke.txt
           grep -q "via engine" smoke.txt
+          test "$("./dist/${{ matrix.asset }}${EXE}" --version | tr -d '\r')" = "${GITHUB_SHA}"
 
       - uses: actions/upload-artifact@v4
         with:

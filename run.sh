@@ -17,14 +17,15 @@ case "$os" in
 esac
 bin="$DIR/$asset"
 
-remote="$(curl -fsSL "$BASE/version.txt" 2>/dev/null || true)"
-local_v="$(cat "$DIR/$asset.version" 2>/dev/null || true)"
+# Always run the newest build: compare the release sha with what the local binary reports.
+remote="$(curl -fsSL "$BASE/version.txt?t=$(date +%s)" 2>/dev/null | awk '{print $1}' || true)"
+local_v=""
+[ -x "$bin" ] && local_v="$(HEXBOT_NO_UPDATE=1 "$bin" --version 2>/dev/null | head -1 || true)"
 if [ ! -x "$bin" ] || { [ -n "$remote" ] && [ "$remote" != "$local_v" ]; }; then
   echo "Downloading $asset ${remote:+($remote)} ..." >&2
   curl -fL --progress-bar -o "$bin.part" "$BASE/$asset"
   chmod +x "$bin.part"
   mv -f "$bin.part" "$bin"
-  [ -n "$remote" ] && printf '%s\n' "$remote" > "$DIR/$asset.version"
 fi
 if [ "$os" = "Darwin" ] && command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$bin" 2>/dev/null || true
