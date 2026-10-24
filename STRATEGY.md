@@ -16,6 +16,19 @@
   Spend your first edits on the **plain shield around #2's stars**, then on the long probe, then on wall placement.
 - **Tested against heuristic bots only.** The engine (which uses edit-then-stamp probes) is testing it now. Exact edit strings for both colours are coming.
 
+### Exact Fortlite edit strings (checked against the official rules; play them **in this order**, with no other edits in between — stamps in between are fine)
+- **Blue (9):** `3:1,1>2:2,-1` `3:1,0>2:0,1` `3:0,0>2:-1,0` `3:0,0>2:-3,2` `3:-1,1>2:-3,3` `3:0,1>2:-2,1` `1:1,1>2:-1,4` `1:1,0>2:0,3` `1:0,0>2:-2,4`
+- **Red (9):** `3:1,1>2:2,1` `3:1,0>2:2,0` `3:0,0>2:1,2` `3:0,0>2:0,-1` `3:-1,1>2:1,0` `3:0,1>2:-1,1` `1:1,1>2:-2,4` `1:1,0>2:-2,3` `1:0,0>2:-1,4`
+- **End result:**
+  - #2 = 16 cells: 4 interior stars, 3 walls, 9 plains → every stamp is +4 protected stars.
+  - #1 = a star + 3 plains.
+  - #3 = a **single star, which works as a 1-hex sniper** for edit-free captures into holes.
+- **Hex19 extension (+5 edits, 14 in total):** gives #2 = 6 stars + 1 wall inside, 2 walls + 10 plains on the rim → +6 safe stars per stamp.
+  It leaves #1 with 2 plains and #3 empty, so **you lose the sniper and the probe**.
+  - Blue: `2:0,2>2:1,2` `1:1,0>2:0,2` `2:-1,1>2:-1,0` `3:0,0>2:0,1` `1:1,1>2:-2,4`
+  - Red: `2:1,1>2:2,0` `1:1,0>2:1,1` `2:-1,2>2:-2,2` `3:0,0>2:-1,2` `1:1,1>2:0,4`
+- **Recommended:** Fortlite (9 edits), keeping the sniper. Interleave the edits with safe #2 stamps whenever the enemy has no capture threat.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
