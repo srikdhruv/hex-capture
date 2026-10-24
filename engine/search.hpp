@@ -23,6 +23,7 @@ struct Params {
   int maxK1 = 1024, maxK2 = 64;
   int openRand = 0;       // selfplay: randomize among top-N for first plies
   int openPlies = 0;
+  int randPlies = 0;      // selfplay: first N plies are random placements
   void set(const std::string& kv) {
     auto p = kv.find('='); if (p == std::string::npos) return;
     std::string k = kv.substr(0, p); double v = atof(kv.c_str() + p + 1);
@@ -34,7 +35,7 @@ struct Params {
     else if (k == "widenFrac") widenFrac = v; else if (k == "buildBase") buildBase = v;
     else if (k == "bookMargin") bookMargin = v;
     else if (k == "maxK1") maxK1 = (int)v; else if (k == "maxK2") maxK2 = (int)v;
-    else if (k == "openRand") openRand = (int)v; else if (k == "openPlies") openPlies = (int)v;
+    else if (k == "openRand") openRand = (int)v; else if (k == "openPlies") openPlies = (int)v; else if (k == "randPlies") randPlies = (int)v;
     else fprintf(stderr, "unknown param %s\n", k.c_str());
   }
 };
@@ -657,6 +658,10 @@ inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const P
       while (g.ply < TOTAL_PLIES) {
         int s = turnOf(g.ply);
         const Params& P = (s == aSeat) ? pa : pb;
+        if (g.ply < P.randPlies) {
+          std::vector<Move> mv; g.genPlaces(mv, s);
+          if (!mv.empty()) { Undo u; Move m = mv[rng() % mv.size()]; moves += g.moveStr(m) + " "; g.apply(m, u); continue; }
+        }
         const Book* bk = (s == aSeat) ? ba : bb;
         std::string bm = bk ? bookNext(*bk, g) : std::string();
         SearchResult r = searchRoot(g, timeMs, innerThreads, P, none, false, &rng, bm);
