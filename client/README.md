@@ -82,6 +82,22 @@ python3 tools/arena.py --a "engine/versions/bp-<sha> --time-ms 1000" --b "node t
 Color-swapped pairs from random openings, W/D/L, score % and Elo with 95% CI, mean score diff with
 95% CI, per-color breakdown, faults. `--out results.jsonl` keeps every game's moves.
 
+## Post-mortem of real games
+
+```bash
+python3 tools/postmortem.py ~/.hexbot/logs/                 # or one game-*.jsonl, or a `hexbot --logs` zip
+python3 tools/postmortem.py logs.zip --time-ms 10000 --jobs 4
+```
+
+For each of our turns it re-runs `engine/bp` with a long budget and ranks:
+- points conceded on the opponent's next turn that the engine's line would have avoided
+- immediate captures we missed (with a note when the long search also skips them)
+- the biggest eval losses
+
+It also profiles the opponent: edits, how far they follow Fortlite, snipers, their first 10 moves, stars over
+time and their hands. Flagged positions go to `lab/positions/*.json` (state, played move, engine move,
+note) for the regression suite. `--no-save` skips that, and `--seat` fixes our seat if the log is ambiguous.
+
 ## Pair-play helper (manual play)
 
 ```bash

@@ -56,6 +56,8 @@ What it does:
 - Checks in every round, plays every move, and also plays "Test your engine" self-test games.
 - Prints one line per move: round, colour, ply, move, score.
 - Writes logs to `~/.hexbot/logs/`. Stop it with Ctrl+C.
+- To send us your games, run it with `--logs` (macOS/Linux: `... | bash -s -- --logs`). It prints the log
+  folder and zips the last 10 game logs into one file (`--logs 30` for more). The zip never contains the token.
 - Keeps itself up to date. Each launch runs the newest build. While running, it checks about every
   2 minutes, between games only and never mid-game. When there is a new build it swaps it in, restarts
   with the same settings and prints `updated to <sha>`. `--no-update` turns this off; `--version`

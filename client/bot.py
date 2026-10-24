@@ -917,6 +917,38 @@ def detect_tournament(base):
     return None
 
 
+def pack_logs(n):
+    """Print the log folder and zip the last n game logs (+ recent bot logs) into one file to send.
+    The token is never included: it is not written to logs, and any accidental occurrence is redacted."""
+    import glob
+    import zipfile
+    print(f"Log folder: {LOG_DIR}")
+    games = sorted(glob.glob(os.path.join(LOG_DIR, "game-*.jsonl")), key=os.path.getmtime)[-n:]
+    bots = sorted(glob.glob(os.path.join(LOG_DIR, "bot-*.log")), key=os.path.getmtime)[-3:]
+    if not games and not bots:
+        print("No logs yet.")
+        return
+    secrets = [os.environ.get("STRATEGYJAM_TOKEN", "").strip()]
+    try:
+        with open(TOKEN_FILE) as f:
+            secrets.append(f.read().strip())
+    except OSError:
+        pass
+    secrets = [t for t in secrets if len(t) >= 8]
+    out = os.path.join(HOME_DIR, time.strftime("hexbot-logs-%Y%m%d-%H%M%S.zip"))
+    os.makedirs(HOME_DIR, exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in games + bots:
+            if os.path.abspath(f) == os.path.abspath(TOKEN_FILE):
+                continue
+            with open(f, "rb") as fh:
+                data = fh.read()
+            for t in secrets:
+                data = data.replace(t.encode(), b"[REDACTED]")
+            z.writestr(os.path.basename(f), data)
+    print(f"Packed {len(games)} game log(s) and {len(bots)} bot log(s) into:\n  {out}\nSend that file. It contains no token.")
+
+
 def main():
     if "--version" in sys.argv[1:]:
         print(BUILD_SHA)
@@ -935,6 +967,8 @@ def main():
     ap.add_argument("--save-token", action="store_true", help="store the token in ~/.hexbot/token (0600) for next time")
     ap.add_argument("--forget-token", action="store_true", help="delete ~/.hexbot/token and exit")
     ap.add_argument("--version", action="store_true", help="print the build sha and exit")
+    ap.add_argument("--logs", type=int, nargs="?", const=10, default=None, metavar="N",
+                    help="print the log folder and zip the last N game logs (default 10) to send; no token included")
     ap.add_argument("--no-update", action="store_true", help="disable in-session auto-update (env HEXBOT_NO_UPDATE=1)")
     ap.add_argument("--self-update", action="store_true", help="update the packaged executable now (if newer) and exit")
     ap.add_argument("--no-tournament", action="store_true", help="only standalone challenges / self-test games")
@@ -959,6 +993,9 @@ def main():
             print(f"updated to {sha}")
             updater.reexec(exe, ["--version"], None, BUILD_SHA)
         raise SystemExit(1)
+    if args.logs is not None:
+        pack_logs(max(1, args.logs))
+        return
     if args.forget_token:
         try:
             os.remove(TOKEN_FILE)
