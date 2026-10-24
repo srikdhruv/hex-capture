@@ -1,0 +1,5 @@
+client/.venv/
+client/logs/
+engine/bp
+__pycache__/
+*.o
