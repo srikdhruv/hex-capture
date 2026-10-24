@@ -4,6 +4,18 @@
 > Rules source: exact port of the official game code in `reference/rules.mjs`.
 > Status: v1 (lab + engine findings merged; read 0a / 0b / 0 first). Lab results and engine findings will be merged in as they arrive.
 
+## 00. BIGGEST RESULT SO FAR — shield your stars ("Fortlite" #2)
+
+- **What it is:** spend about 9 edits moving **plains from #1/#3 into #2**, wrapped around #2's 3 edge stars, so **all 4 stars are interior**. Every neighbour of every star is then one of your own cells or a wall.
+- **Result:** won **32–0** against the no-edit baseline (16–0 as each colour), average margin **+6900**, even after paying 9 actions for the edits.
+- **A bigger version also went 32–0:** a full radius-2 hex of 19 cells, with 6 stars + 1 wall inside and 2 walls + 10 plains on the rim (14 edits).
+- **Why it works:** to reach an interior star, the enemy must first erase a shield plain. That leaves a **1-hex hole that a 7-hex flower can't fit into**, so they need a tiny probe piece. Every stamp you make is +4 stars they can't take.
+- **Weak point:** the enemy cuts a piece down to 1–2 cells (a "sniper"), breaches with action 1 and snipes with action 2.
+  Watch their hand for small pieces, and keep the holes next to your stars filled. Sniper-counter tests are running.
+- **How it combines with your plan:** shields matter more than stacking (stacking alone lost 19–45).
+  Spend your first edits on the **plain shield around #2's stars**, then on the long probe, then on wall placement.
+- **Tested against heuristic bots only.** The engine (which uses edit-then-stamp probes) is testing it now. Exact edit strings for both colours are coming.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
