@@ -50,6 +50,16 @@
   Counter to watch for: the enemy builds their own long piece to chase you.
 - Lab designs being tested: D1 "Fort17" (6 interior stars in #2 + a 3-plain line + a 1-plain sniper), D3 seal-then-attack, D4 run-away colony.
 
+## 0d. Middlegame: the sniper loop (engine Fortlite mirror games)
+
+- **What happens:** after the 9 edits and about 3 #2 stamps (around ply 26), games turn into a **capture loop**.
+  Every action stamps the 1-star #3 sniper into a 1-hex hole next to an enemy star.
+  Each stamp takes 1 star and gives 1 back (your sniper gets erased next), so star counts stay flat at about 30 each and scores climb by about 30 per action.
+- **Keep sniping; don't go back to building stars.** In tests, weighting star-building more heavily **lost 2–62 to 20–44**.
+- **Your edge: the last action and tempo.** Blue has the final action of the game (ply 119).
+- **Idea being tested: use a PLAIN sniper.** It still captures, but when they erase it they score 0.
+  It costs 2 extra edits after Fortlite: move #3's star into #1, then move a plain from #1 into #3.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
