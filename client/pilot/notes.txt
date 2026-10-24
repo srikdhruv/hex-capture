@@ -19,3 +19,26 @@ R9 (lost 52-156 as Blue vs aryan, wall builder #2): opp edited 6x early (stars i
   star of ours near their walls is -multiplier; build far away only (engine did run NE, good) and refill holes.
 Pilot mechanics: prefer_wait_ms=3000 + autopick daemon answering every pick instantly = conditional rules at ~0 clock.
 Stale pick-<ply>.json files from an old game can be replayed in the next game: daemon deletes them.
+
+R10 (WON 5613-1403 as Red vs wernerolaf, RUSHER): from ply 0 they stamped their 5-star #2 straight at us and ate our
+#1/#3 flowers during our book edits (0-112, stars 2 vs 39 at ply 17). At ply 13 the book edit was 84 worse than the
+best move but bookMargin=100 kept it. bookMargin=10 from ply 15 -> engine stamped Fortlite #2 + sniped their ~60 open
+stars; led from ~ply 50. Lesson: rushers leave huge open star masses; sealed Fortlite #2 + star sniper wins the
+exchange even from 2 stars. Start every game with bookMargin=30 (control.json default now).
+
+HANDOFF (pilot #1 -> next pilot)
+- Tools (on disk, not committed; client/pilot/ is gitignored): client/pilot/tools/
+  * autopick.py: daemon. For every new decision.json it immediately writes pick-<ply>.json (the engine move, or a rule
+    move), so prefer_wait_ms=3000 costs ~0 clock. It deletes stale pick-*.json (an old game's pick-<ply> could otherwise be
+    replayed in the next game). Rules in tools/rules.json:
+      {"<ply>": {"move": "...", "unless_capture": true}}  conditional pick (skipped if any top move captures)
+      {"protect_from": 20}  from ply 20, replace engine EDITS touching #2/#3 with the best non-edit top move unless a
+                            capture is on the board (stops the engine wrecking Fortlite / deleting the sniper; R9 issue).
+    Run: cd client/pilot/tools && nohup python3 -u autopick.py >> autopick.log 2>&1 &   then set prefer_wait_ms 3000.
+    If the daemon is NOT running, keep prefer_wait_ms 0 (otherwise every ply waits the full time).
+  * opp.py: opponent profile from newest game log (edits/stamps, walls, hands, open/soft/sealed stars, distances).
+  * holes.py: enemy stars with empty/plain neighbours + distance from our cells (is a crack still possible?).
+  * cap2.mjs: exhaustive 2-placement capture search via reference rules (pruned near enemy stars; can be slow).
+- Engine handles tactics well (found the R9 breach+snipe itself). The pilot's levers that mattered: bookMargin vs rushers,
+  alpha 0 vs sealed turtles, and stopping destructive post-book edits.
+- engine_args take effect from the NEXT engine call; picks/force must be prepared before the decision appears.
