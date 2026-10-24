@@ -4,6 +4,20 @@
 > Rules source: exact port of the official game code in `reference/rules.mjs`.
 > Status: v1 (lab + engine findings merged; read 0a / 0b / 0 first). Lab results and engine findings will be merged in as they arrive.
 
+## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
+
+1. **SNIPE:** is there an empty hex touching **both** an enemy star **and** one of your cells? Stamp #3 there (the 1-hex star): +1 capture **and** +1 multiplier.
+2. **BREACH + SNIPE** (uses both actions): find an enemy star with a shield plain your #2 can touch.
+   Action 1: stamp #2 there — it erases the plain, and the new hole touches your fresh cells. Action 2: #3 into the hole.
+3. **DEFEND:** is there an empty hex touching **both** one of your stars **and** an enemy cell? They will snipe it.
+   Fill it, or erase the enemy cell next to it: any stamp touching an enemy non-wall cell erases it. Erasing their sniper-star counts as a capture.
+4. **Otherwise:** stamp #2 wherever it fits (+4 sealed stars). Distance from the front barely matters.
+5. **Last turns:** capture over build.
+   - Blue at 119: take the biggest single capture.
+   - Red at 118: leave no hex that touches both your star and a Blue cell.
+- **Opening:** Fortlite edits first (section 00). **vs a wall turtle:** section 0f.
+- In mirrors, about 60% of actions are snipes and 30% are #2 builds.
+
 ## 00. BIGGEST RESULT SO FAR — shield your stars ("Fortlite" #2)
 
 - **What it is:** spend about 9 edits moving **plains from #1/#3 into #2**, wrapped around #2's 3 edge stars, so **all 4 stars are interior**. Every neighbour of every star is then one of your own cells or a wall.
