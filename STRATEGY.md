@@ -29,6 +29,19 @@
   - Red: `2:1,1>2:2,0` `1:1,0>2:1,1` `2:-1,2>2:-2,2` `3:0,0>2:-1,2` `1:1,1>2:0,4`
 - **Recommended:** Fortlite (9 edits), keeping the sniper. Interleave the edits with safe #2 stamps whenever the enemy has no capture threat.
 
+## 0c. Bigger ideas in testing (player + coordinator)
+
+- **The enemy can only score by erasing your STARS.** This leads to two rules:
+  - **Seal every star** — interior, behind plains or walls.
+  - **Attack only with star-free pieces** (plain probes and snipers). When the enemy erases your attackers, they score 0.
+  Do both, and you score your full multiplier while the enemy scores nothing.
+- **A complete wall perimeter can never be breached.** Walls are never erased, and a connected stamp can't cross them.
+  Plan: build up your multiplier, then close the side facing the enemy with walls, then spend every remaining action attacking.
+- **Run away and spam stars.** Use a long thin piece to jump your frontier far from the enemy: a stamp only has to touch your cells when it is placed, so a 6–10 cell line moves your frontier 6–10 hexes in one action.
+  Build a star colony beyond their reach (8 + the length of their longest piece). Later, slither a probe into their star mass.
+  Counter to watch for: the enemy builds their own long piece to chase you.
+- Lab designs being tested: D1 "Fort17" (6 interior stars in #2 + a 3-plain line + a 1-plain sniper), D3 seal-then-attack, D4 run-away colony.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
