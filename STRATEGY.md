@@ -84,3 +84,11 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
   The threat-aware bot beat the threat-blind one 27–3. Weighting captures higher won 73%; heavy star hoarding won 40%.
   10 of 105 Blue first moves lose a star immediately (listed in TL;DR).
 - **Engine v1 selfplay:** scores of 3–5k, ~75 stars per side at the end.
+- **Engine v3** (beat v2 by +137 Elo):
+  - Games are capture-heavy. Each side captures about 60 stars and ends with 70–90.
+  - **A single placement often erases 4–6 stars of a freshly stamped #2.** Don't stamp #2 where enemy cells can reach it.
+  - **Edit-then-stamp is a key attack.** Spend action 1 reshaping a probe blueprint so it fits into a hole, then stamp it with action 2 to capture.
+    Example: `1:0,0>1:0,1` then `1@0,-11` scored 240 and 288.
+    When you defend, assume the enemy can reshape one cell before stamping.
+  - Given a term for blueprint star content, the engine plays the 6-star #2 edits by itself: ply 0 `1:0,1>2:…`, then `3:0,1>2:…`.
+    A/B tests of how much weight that term gets were inconclusive.
