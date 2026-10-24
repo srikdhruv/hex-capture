@@ -40,7 +40,10 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
    Best case: grow and capture with the same #2 stamp, placed so that one of its cells touches an exposed enemy star.
 4. **Blue's first move: don't drop #2 near the middle.** These first moves lose a star to Red's first turn:
    `2@1,-3 2@-1,1 2@-1,-4 2@-4,2 2@-3,-3 2@-3,-4 2@-2,-4 2@-5,1 2@-5,2 2@-6,2`.
-5. **Clock: the +15 s increment comes once per 2-action turn, not per action.** Budget about 7 s per action, or you will drain.
+5. **Hypothesis, being tested: put all 6 stars in #2.** On a quiet turn, spend 2 edits moving the centre stars of #1 and #3 into #2.
+   #1 and #3 stay connected as plain rings. #2 then gives +6 stars per stamp instead of +4: about +100 multiplier over a game for 2 actions.
+   Attach each new star where it touches the most of #2's own walls and stars, so it is not exposed.
+6. **Clock: the +15 s increment comes once per 2-action turn, not per action.** Budget about 7 s per action, or you will drain.
 
 ## 3. Principles (v0, first-principles — refined below as data comes in)
 
