@@ -1,0 +1,17 @@
+games 72 in 906s
+fortlite               win%  91.7  W-L-D 33-3-0  blue 17-1 red 16-2  avgMargin 304 avgPts 444
+eris replica           win%  75.0  W-L-D 27-9-0  blue 14-4 red 13-5  avgMargin 31 avgPts 130
+fortlite->www@60 seal  win%  19.4  W-L-D 7-29-0  blue 6-12 red 1-17  avgMargin -205 avgPts 141
+fortlite->www@40 seal  win%  13.9  W-L-D 5-31-0  blue 5-13 red 0-18  avgMargin -129 avgPts 113
+fortlite (B) vs eris replica (R) 5-1-0
+fortlite (B) vs fortlite->www@60 seal (R) 6-0-0
+fortlite (B) vs fortlite->www@40 seal (R) 6-0-0
+eris replica (B) vs fortlite (R) 2-4-0
+eris replica (B) vs fortlite->www@60 seal (R) 6-0-0
+eris replica (B) vs fortlite->www@40 seal (R) 6-0-0
+fortlite->www@60 seal (B) vs fortlite (R) 0-6-0
+fortlite->www@60 seal (B) vs eris replica (R) 0-6-0
+fortlite->www@60 seal (B) vs fortlite->www@40 seal (R) 6-0-0
+fortlite->www@40 seal (B) vs fortlite (R) 0-6-0
+fortlite->www@40 seal (B) vs eris replica (R) 0-6-0
+fortlite->www@40 seal (B) vs fortlite->www@60 seal (R) 5-1-0
