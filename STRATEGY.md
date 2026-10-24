@@ -12,6 +12,9 @@ So games are decided early:
 2. **Then seal.** Wall your stars in until no empty path reaches any hole next to them.
 3. **After that, never stamp stars the enemy can reach.** Exposed stars are their only way back.
 4. **Crack their starting stars before they seal** — in practice before about action 40. If they seal while ahead, the game is over.
+- **The wall-only attacker:** R8's winner stamped a 3-wall line ("www") right next to our stars.
+  Stamping walls erases neighbouring enemy cells the same as any stamp, but walls can never be erased back, and every stamp also extends the seal.
+  Consider a wall piece for your own attacks; the lab is testing hands built around it.
 - Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
 
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
