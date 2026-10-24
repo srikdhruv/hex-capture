@@ -70,6 +70,16 @@
   - Engine-vs-engine says sniping beats building once the loop starts.
   - **Against strong opponents, follow the engine.** Snipe whenever a capture is on the board; stamp #2 only on actions with no capture available.
 
+- **Lab #7, probe shapes (exact search):**
+  - **1- or 2-hex probes take only 1 star per breach of a Fortlite.** Each shield hole touches exactly one star.
+  - **A 3-plain CHEVRON (a 120° bend) takes 2 stars.** Wrap it around one of the enemy fort's ring walls: each arm lands in the hole on one side of the wall, and the elbow sits on the empty corner outside it.
+  - **Shapes that do it**, in blueprint keys:
+    - vs Blue's Fortlite: `{0,0 0,1 -1,2}`, `{0,0 1,0 -1,1}` or `{0,0 0,1 1,1}`;
+    - vs Red's Fortlite: the mirror images.
+  - **Defend against it:** the danger points are the 3 empty corners just outside your #2's ring walls.
+    Don't let an enemy piece touch both shield plains at a corner. If one does, refill the hole next turn or erase their piece.
+  - Compact 6-star forts leak 2 stars even to a 1-hex sniper. Fortlite, with its stars separated by walls, is the most leak-resistant layout tested.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
