@@ -306,7 +306,7 @@ class Chooser:
 # ----------------------------------------------------------------------------- network client
 
 class Bot:
-    def __init__(self, base, token, tournament, chooser, dry_run=False):
+    def __init__(self, base, token, tournament, chooser, dry_run=False, advise=False):
         self.base = base
         self.headers = {"Authorization": "Bearer " + token}
         for variable, header in [("CF_ACCESS_CLIENT_ID", "CF-Access-Client-Id"),
@@ -315,7 +315,9 @@ class Bot:
                 self.headers[header] = os.environ[variable]
         self.tournament = tournament
         self.chooser = chooser
-        self.dry_run = dry_run
+        self.dry_run = dry_run or advise
+        self.advise = advise     # human plays; we only print advice. Never POSTs anything.
+        self.reminded = set()
         self.stopped = threading.Event()
         self.lock = threading.RLock()
         self.rooms = {}          # room -> tournament id (None for standalone); cleared on reconnect
@@ -348,6 +350,9 @@ class Bot:
 
     # --- HTTP (same semantics as the example: None => re-read, never replay)
     def call(self, path, body, method="POST"):
+        if self.advise and method != "GET":
+            log(f"advise mode: refusing to send {method} {path}")
+            return None
         data = None if method == "GET" else json.dumps(body).encode()
         request = urllib.request.Request(self.base + path, data=data, method=method,
                                          headers={**self.headers, "Content-Type": "application/json"})
@@ -427,6 +432,39 @@ class Bot:
                 self.workers[room] = t
                 t.start()
             ev.set()
+
+    def _advise(self, room, state):
+        import advise
+        view = state.get("view") or {}
+        you = state.get("you") or []
+        turn = state.get("turn", view.get("turn"))
+        ply = state.get("ply", view.get("ply"))
+        if view.get("result") or not view.get("moves"):
+            return
+        rnd = self.room_round.get(room)
+        where = f"Round {rnd}" if rnd is not None else f"Game {str(room)[:8]}"
+        with self.lock:
+            if self.pending.get(room) == ply:
+                return
+            self.pending[room] = ply
+        sc = view.get("scores") or [0, 0]
+        if turn not in you:
+            print(f"\n{where} | ply {ply}/120 | opponent ({'Blue' if turn == 0 else 'Red'}) to move | "
+                  f"Blue {sc[0]} - Red {sc[1]}", flush=True)
+            return
+        move, info = self.chooser.choose(room, state, turn)
+        with self.lock:
+            newest = self.latest.get(room)
+        if (newest or {}).get("ply") != ply:
+            return  # you already moved; the next state brings fresh advice
+        try:
+            text = advise.render(view, turn, dict(info, move=move),
+                                 header=f"===== {where} | YOUR TURN ({'Blue' if turn == 0 else 'Red'}) | ply {ply}/120 =====",
+                                 clock_ms=info.get("clock_ms"))
+        except Exception as e:  # noqa: BLE001
+            text = f"{where} ply {ply}: suggested move {move} (render error {type(e).__name__})"
+        print("\n" + text + "\n(advice only: play your move on strategyjam.org)", flush=True)
+        jlog(room, {"type": "advice", "ply": ply, "move": move, **info})
 
     def game_summary(self, room, state):
         view = state.get("view") or {}
@@ -522,6 +560,8 @@ class Bot:
                 self.busy.discard(room)
 
     def _play(self, room, state):
+        if self.advise:
+            return self._advise(room, state)
         view = state.get("view") or {}
         you = state.get("you") or []
         turn = state.get("turn", view.get("turn"))
@@ -625,7 +665,12 @@ class Bot:
             window_open = (closes or 0) > time.time() * 1000  # same rule as the official example
             if not state.get("checkedIn") and key not in self.checked_in and window_open:
                 self.checked_in.add(key)
-                if self.dry_run:
+                if self.advise:
+                    if key not in self.reminded:
+                        self.reminded.add(key)
+                        log(f">>> Round {key[1]} check-in is OPEN: check in yourself on strategyjam.org "
+                            f"(advise mode never checks in or moves for you) <<<")
+                elif self.dry_run:
                     log(f"[dry-run] would check in for round {key[1]}")
                 else:
                     threading.Thread(target=self.check_in, args=(tid, key, closes), daemon=True).start()
@@ -737,7 +782,8 @@ class Bot:
         import websocket
         if self.updater.enabled():
             threading.Thread(target=self.update_loop, daemon=True, name="updater").start()
-        threading.Thread(target=self.watchdog, daemon=True, name="watchdog").start()
+        if not self.advise:
+            threading.Thread(target=self.watchdog, daemon=True, name="watchdog").start()
         backoff = 1
         try:
             while not self.stopped.is_set():
@@ -873,6 +919,8 @@ def main():
         print(BUILD_SHA)
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--advise", action="store_true",
+                    help="advice only: you play manually (no Engine label); never checks in or posts moves")
     ap.add_argument("--dry-run", action="store_true", help="compute and log moves but never POST (no check-in, no moves)")
     ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "6500")),
                     help="target think time per action (default 6500)")
@@ -937,7 +985,13 @@ def main():
     if not args.no_tournament:
         tournament = args.tournament or detect_tournament(base) or DEFAULT_TOURNAMENT
         log("tournament:", tournament, "(override with TOURNAMENT_ID or --tournament; --no-tournament for challenges only)")
-    bot = Bot(base, token, tournament, chooser, dry_run=args.dry_run)
+    if args.advise:
+        if os.name == "nt":
+            os.system("")  # enable ANSI colours in the Windows console
+        chooser.cap_ms = int(os.environ.get("ADVISE_TIME_MS", "5000"))
+        print("ADVICE ONLY: hexbot will never check in or send moves, so your entry keeps no Engine label.\n"
+              "Check in yourself on strategyjam.org every round and play the moves you choose.", flush=True)
+    bot = Bot(base, token, tournament, chooser, dry_run=args.dry_run, advise=args.advise)
     bot.run()
     if bot.reexec_target:
         updater.reexec(bot.reexec_target, sys.argv[1:], token, BUILD_SHA)

@@ -197,6 +197,23 @@ def main():
     assert bot.think_budget_ms(9999, 9000) == 1000          # emergency mode
     assert bot.think_budget_ms(3500, 9000) == 500
     assert bot.think_budget_ms(60000, 9000, 4000) == 4000   # --max-time-ms cap
+    # Advise mode: never checks in, never POSTs; prints advice on our turn.
+    adv = bot.Bot("https://example.invalid", "x" * 20, "tid123", bot.Chooser(os.environ.get("ENGINE_CMD"), 800), advise=True)
+    adv_calls = []
+    real_call = bot.Bot.call
+    adv.call = lambda path, body, method="POST": (adv_calls.append((method, path)), real_call(adv, path, body, method))[1]
+    adv.ws = FakeWS()
+    adv.on_message(adv.ws, json.dumps({"type": "tournament", "tournament": "tid123", "state": t_state}))
+    time.sleep(0.3)
+    assert adv_calls == [], adv_calls
+    assert adv.ws.sent[-1] == {"type": "watch-game", "room": "roomA", "tournament": "tid123"}
+    adv.on_message(adv.ws, json.dumps({"type": "state", "room": "roomA",
+                                       "state": {"you": [1], "turn": 1, "ply": 1, "view": v1, "clock": [60000, 50000]}}))
+    wait_for(lambda: adv.pending.get("roomA") == 1)
+    time.sleep(3)
+    assert adv_calls == [], adv_calls
+    assert real_call(adv, "/api/engine/tournaments/tid123/move", {"ply": 1, "move": "x"}) is None
+
     print("OK: all offline client tests passed;", len(calls), "HTTP calls:", [c[0] for c in calls])
 
 

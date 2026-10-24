@@ -20,6 +20,22 @@ curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh |
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1 | iex"
 ```
 
+### Advice only (you play manually, no Engine label)
+
+The bot only reads your board and prints advice on each of your turns. It **never** checks in or sends a
+move, so your entry is not tagged Engine. Check in yourself on strategyjam.org every round and enter the
+moves yourself. On each of your turns it prints the board, scores and stars, the top 3 engine moves with
+their points (the best one is marked `+` on the board), and which of your stars the opponent can capture
+next. Each suggestion takes about 5 seconds to compute.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh | bash -s -- --advise
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1))) --advise"
+```
+
 ### Token
 
 On first start the bot asks for your StrategyJam engine token. Input is hidden, and the token is never

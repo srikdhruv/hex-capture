@@ -24,8 +24,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-sys.path.insert(0, HERE)
-import hexrender as H  # noqa: E402
+sys.path.insert(0, os.path.join(REPO, "client"))
+import hexrender as H  # noqa: E402  (shared with the packaged bot: client/hexrender.py)
 
 BPCLI = os.path.join(HERE, "bpcli.mjs")
 GREEDY = os.path.join(HERE, "greedy.mjs")
