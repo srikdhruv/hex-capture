@@ -23,3 +23,25 @@ Biggest swings:
 Pilot: none (pilot interface not yet live).
 Lessons: vs turtle, protect/wall our start stars early instead of editing; never stamp stars within reach of their line/wall pieces;
   eval must discount own star count when the enemy has no capturable stars. COPY IDEA: wall-only sniper pieces (immune capturers).
+
+== R9 | we Blue | vs aryan | LOST 52-156 | final stars us 144 / them 30 | engine bp-14f47c5, pilot on (autopick = engine every ply)
+room 2fc42312c3cde1f896f26210bf81854da7c88f0292ac67f166adde0ac2a6ab9d
+Opponent strategy: WWW IMMUNE SNIPER + LOW-STAR TURTLE, LATE STAR GROWTH. 60 actions: 24 edits, 36 stamps, no Fortlite.
+  By ply 10 it edited #2 into a 3-wall piece (0,0=w 0,1=w -1,2=w, later 2-wall) and stamped it ~30 times (2@...) next to our stars.
+  Walls capture adjacent non-wall cells but can't be captured. It kept only 9-10 stars (walled; 79 walls total) until ply ~95, so
+  each snipe was worth 9-10. Then plies 73-98 it edited #1 into a 5-star blob (0,0 -1,1 -2,1 -2,2 -2,3 all stars), grew to 30 stars,
+  and the late snipes paid 20/40/30. #3 became a 14-cell plain line with 1 star.
+  Red first moves: 1:2:1,0>2:-1,0 2:2:0,2>1:2,1 5:2:1,0>1:3,1 6:2@8,1 9:2:2,1>1:4,1 10:2:1,2>2:-1,2 13:2@10,-3 14:2@8,3 17:2:1,1>1:5,1
+    18:2@12,-5 ... 2@ stamps through ply 65; 73-98 edits to #1 (star blob); 101 1@9,-2 102 2@-2,6 105 2@-2,5 110 1@11,1 117 1@14,-4 118 2@-14,6
+Our play: book edits plies 0-16, then spammed #2 (16 cells, 4 stars) to 144 stars. A capture 1@0,-1 was available from ply 20
+  (10 pts) and grew to 41 by ply 36. The engine deliberately waited to grow our multiplier, then took 52 at ply 44 (3@2,1). That was our only
+  capture all game: Red's stars were wall-sealed.
+Biggest swings:
+  1. ply 44 Blue 3@2,1 eats 2,0: +52 (us).
+  2. ply 105 Red 2@-2,5 (ww) eats -2,4 -3,5: +40. Set up by our ply 100 1@-5,5 putting a star next to Red (long search preferred 3@-2,8).
+  3. ply 118 Red 2@-14,6 eats -16,7: +30 (Red multiplier now 30). Also ply 102 +20, ply 45 +18, plies 26/38/42 +10 each.
+Pilot: the autopick daemon picked the engine move on every ply (notes "R9 attack", then "R9 defence: enemy sealed"). There were 2 illegal picks
+  at plies 87/88 ('1:3,1>3:0,0', ignored; the engine move was played). Nothing was overridden.
+Lessons: second straight www-sniper opponent. Our star spam is just prey for an immune sniper; the opponent's late star growth multiplies
+  every snipe. Need: don't place stars within reach of their wall pieces (or wall our star edges), build our own www sniper, and
+  grow our multiplier late, not early.
