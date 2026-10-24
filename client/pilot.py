@@ -80,6 +80,16 @@ class Pilot:
         legal = view.get("moves") or []
         legal_set = set(legal)
         ply = state.get("ply", view.get("ply"))
+        pick_path = os.path.join(self.dir, f"pick-{ply}.json")
+        try:
+            os.remove(pick_path)  # never replay a stale pick left over from an earlier game
+        except OSError:
+            pass
+        try:
+            _atomic_write(os.path.join(self.dir, "state.json"),
+                          {"room": room, "seat": seat, "ply": ply, "state": {k: v for k, v in state.items() if not k.startswith("_")}})
+        except OSError:
+            pass
         ctrl = self.control()
         self.apply_engine_args(ctrl, chooser)
         forced = (ctrl.get("force") or {}).get(str(ply)) if isinstance(ctrl.get("force"), dict) else None
@@ -126,10 +136,17 @@ class Pilot:
                              t0, wait_ms, advise)
         picked = None
         if wait_ms > 0:
-            pick_path = os.path.join(self.dir, f"pick-{ply}.json")
             end = time.time() + wait_ms / 1000
             while time.time() < end:
-                p = _read_json(pick_path).get("move")
+                pk = _read_json(pick_path)
+                p = pk.get("move")
+                if p is not None and pk.get("room") not in (None, room):
+                    self.log(f"PILOT ply {ply}: ignoring pick for another room {str(pk.get('room'))[:12]}")
+                    p = None
+                    try:
+                        os.remove(pick_path)
+                    except OSError:
+                        pass
                 if p is None:
                     p = (self.control().get("force") or {}).get(str(ply))
                 if p in legal_set:

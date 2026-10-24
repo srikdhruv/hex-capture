@@ -167,6 +167,14 @@ def my_clock_ms(state, seat):
         log("clock unit decided:", "ms" if _clock_unit_ms else "s", "(raw", raw, ")")
     ms = raw if _clock_unit_ms else raw * 1000
     # If the clock is running for the side to move since a timestamp, subtract elapsed.
+    # Server clock {remaining, since, now}: elapsed = (now - since) on the SERVER's clock + local time since the
+    # state arrived (immune to skew between our clock and the server's).
+    if isinstance(clock, dict) and _num(clock.get("since")) and _num(clock.get("now")):
+        if state.get("turn") == seat:
+            recv = state.get("_recv_ms")
+            local = max(0.0, now_ms - recv) if _num(recv) else 0.0
+            ms -= max(0.0, clock["now"] - clock["since"]) + local
+        return ms
     if isinstance(clock, dict):
         for k in ("since", "startedAt", "turnStartedAt", "runningSince", "updatedAt", "at", "stamp"):
             v = clock.get(k)
@@ -417,6 +425,7 @@ class Bot:
     # --- per-room worker: computes off the websocket thread so pings/pongs keep flowing
     def on_state(self, room, state):
         jlog(room, {"type": "state", "state": state})
+        state["_recv_ms"] = time.time() * 1000  # local arrival time (clock-skew-free elapsed time)
         view = state.get("view") or {}
         self.last_seen[room] = time.time()
         if view.get("result") and room not in self.finished:
