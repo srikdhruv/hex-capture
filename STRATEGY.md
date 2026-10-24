@@ -57,8 +57,15 @@
   Each stamp takes 1 star and gives 1 back (your sniper gets erased next), so star counts stay flat at about 30 each and scores climb by about 30 per action.
 - **Keep sniping; don't go back to building stars.** In tests, weighting star-building more heavily **lost 2–62 to 20–44**.
 - **Your edge: the last action and tempo.** Blue has the final action of the game (ply 119).
-- **Idea being tested: use a PLAIN sniper.** It still captures, but when they erase it they score 0.
-  It costs 2 extra edits after Fortlite: move #3's star into #1, then move a plain from #1 into #3.
+- **Tested and rejected: a plain sniper LOST 4–44 to the star sniper.** Keep Fortlite's #3 as a single **star**.
+  Each star-snipe captures a star **and** adds +1 to your multiplier.
+  The plain-sniper side captured more stars (58 vs 52) but scored less than half, because its multiplier fell to about 8 against 47.
+- **Middlegame routine (lab #9):**
+  1. Breach with #2: it erases a band of the enemy's shield plains.
+  2. Snipe with #3 into a hole next to one of their sealed stars.
+  3. No snipe available? Stamp #2 for +4 safe stars.
+  4. An enemy sniper-star sitting in your hole is a free capture — erase it on your next action.
+  In mirrors, about 30–35 of each side's ~50 stamps are snipes; #2 is stamped 11–16 times.
 
 - **Lab #6 round robin (320 games, bots that erase then snipe):**
   - Fortlite went **128–0**, beating every other design 32–0.
