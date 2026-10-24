@@ -33,6 +33,8 @@ struct Params {
   double ordMy = 0.8;     // ordering: weight of my follow-up capture (mid-turn)
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
   double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
+  double crackW = 0;        // early-crack: extra value per enemy star removed, fading to 0 at crackPly
+  int crackPly = 60;
   double approachW = 5;     // positional: (their approach cost - ours) to a hex next to an enemy star
   double expoB = 0;         // positional: BFS-reachable stars (targets) * multiplier, both sides
   double mob = 0.02;      // positional: frontier size difference
@@ -63,7 +65,7 @@ struct Params {
     std::string k = kv.substr(0, p); double v = atof(kv.c_str() + p + 1);
     if (k == "alpha") alpha = v; else if (k == "beta") beta = v; else if (k == "ordMy") ordMy = v;
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
-    else if (k == "mob") mob = v; else if (k == "expoB") expoB = v; else if (k == "approachW") approachW = v; else if (k == "third") third = (int)v;
+    else if (k == "mob") mob = v; else if (k == "expoB") expoB = v; else if (k == "approachW") approachW = v; else if (k == "crackW") crackW = v; else if (k == "crackPly") crackPly = (int)v; else if (k == "third") third = (int)v;
     else if (k == "hw") hw = v; else if (k == "hcov") { hcov = v; if (v != 0) g_needCover = true; } else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
     else if (k == "verify") verify = (int)v; else if (k == "vK1") vK1 = (int)v; else if (k == "vK2") vK2 = (int)v;
     else if (k == "widenFrac") widenFrac = v; else if (k == "widenStop") widenStop = v; else if (k == "vulnK") vulnK = (int)v; else if (k == "bookYield") bookYield = (int)v; else if (k == "noEditPly") noEditPly = (int)v; else if (k == "reachL") reachL = std::min(250, (int)v);
@@ -95,6 +97,11 @@ inline double msSince(Clock::time_point t) { return std::chrono::duration<double
 inline double staticEval(const Game& g, int S, const Params& P) {
   int R = TOTAL_PLIES - g.ply;
   double v = (g.score[S] - g.score[1 - S]) + P.alpha * R * (g.stars[S] * P.starScale[S] - g.stars[1 - S] * P.starScale[1 - S]);
+  if (P.crackW != 0 && g.ply < P.crackPly) {
+    // early crack: enemy stars are worth removing before they get sealed
+    double f = (double)(P.crackPly - g.ply) / P.crackPly;
+    v -= P.crackW * f * g.stars[1 - S];
+  }
   if (P.hw != 0 || P.hcov != 0) {
     double b[2] = {0, 0}, cv[2] = {0, 0};
     for (int s = 0; s < 2; s++) for (int i = 0; i < 3; i++) {
