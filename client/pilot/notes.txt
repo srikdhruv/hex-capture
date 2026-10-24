@@ -46,3 +46,17 @@ HANDOFF (pilot #1 -> next pilot)
   first-action edits unless they raise the immediate capture, and never searches edits as the second action. It lost
   4-12 in mirror selfplay, so it stays off by default. Only works if the LIVE binary (~/.hexbot/live/bp, pinned 14f47c5)
   is rebuilt from that commit; an older binary just prints "unknown param" and ignores it.
+
+R11 (WON 3140-595 as Blue vs ctd, resigned ~ply 113; engine e9eef9d, pilot daemon tools/pilot_daemon.py):
+- ctd = WWW-SNIPER + 5-STAR BLOB STACKER (aryan family) but slow: 6 edits in plies 1-6 (#2 -> www, #3 -> 11-cell 5-star blob),
+  first stamp only at ply 13. Book yielded at ply 3 (bookYield=2); engine took 2,0 at ply 8 (+18) and 10,0/11,0 at ply 20 (+72)
+  before any of their walls closed. From ply 70 they grew the blob (mult 18 -> 26) and sniped 2-4 exposed stars per turn (50-90/turn);
+  our captures at mult 120-140 (+492 at 80, +417 at 104, +536 at 111) kept the gap growing.
+- Pilot levers used: --nobook from ply 12 (prevents edit resumption); protect_from=20 on #2 (and #3 only while it still has the
+  sniper star: engine moved #3's star into #2 at ply 19, after that #3 is a plain probe and the engine's reshape-#3/#1-then-stamp
+  pattern produced the big captures, so do NOT protect a star-less #3); take_capture_min=50 after the engine declined a +65 1-star
+  snipe at ply 36 (fired at 76/80/96/100/104/108/111); star_safe_dist=7 from ply 64 once their 13-cell #1 probe (span 6) appeared.
+- Caveat: take_capture_min compares single-action points; at ply 111 it overrode a +402 engine line with +536 (fine here, but it can
+  break a better 2-action plan). Prefer applying it only when the engine move itself captures nothing.
+- Daemon switch: tools/pilot_daemon.py (rules.json, lock file) replaced the scratch autopick; restart it between games only.
+  Approach rule: client A/B says negative vs turtle-book (10-6 vs 13-3) -> keep off unless R8-style far unsealed turtle.
