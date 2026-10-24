@@ -27,6 +27,11 @@ So games are decided early:
   - R9 (aryan) was crackable until about **ply 55**. Walls still needed: 27 at ply 8, 16 at ply 40, 9 at ply 48, 3 at ply 56.
   - R8 (Eris) was **never sealed** — we lost 0–84 only because our engine never attacked.
   - **Rule: against a wall builder, attack their front inner flower by about ply 50.** Breach a shield plain with #2, then snipe with #3.
+- **Lab wall-city round robin (36 games):**
+  - Fortlite with early attacks beat a wall-city replica **9–3**.
+  - The wall city **crushed slow, edit-heavy builders 12–0**. That is what our engine was in R8–R9.
+  - A 15-edit wall-domino hand (H1) lost 0–24. **Don't make more than ~9 edits against a wall builder.**
+  - Rule: finish Fortlite's 9 edits, then attack their front starting flower immediately.
 - Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
 
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
