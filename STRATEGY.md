@@ -109,6 +109,19 @@
   **Leave 0 exposed stars after 118.**
 - **Blue at 115–116:** capture the most. Prefer captures that also plug your own holes — the sniper stamp itself fills one.
 
+## 0f. Facing a WALL TURTLE (seen live in R8 and R9; lab #13)
+
+- **How to recognise one:** they keep only the 6 starting stars, stamp a 3-wall line again and again around them, and attack with a 6-plain line.
+- **Fortlite beat a turtle bot 32–0.** The turtle captures plenty, but at a multiplier of 6 or less; every star you crack costs it about 1/6 of its scoring power.
+- **Counter plan:**
+  1. Do Fortlite edits 1–6 first. That finishes the 1-hex star sniper (#3).
+  2. **Hit their FRONT starting flower before the walls close** — Blue's star at (-2,0), Red's at (2,0).
+     Stamp #2 so it touches 2 of the flower's plains, then snipe the hole next to the star in the same turn. Then move on to the next starting flower.
+  3. Your plain-sealed stars are only safe from a 6-line if no straight 6-hex empty channel runs past a shield hole. After they breach, refill the hole or erase the line.
+  4. **Once all their stars are walled in, stop exposing stars.** Your multiplier is worthless at that point, and every exposed star feeds them.
+- **Playing turtle yourself only works against opponents stamping unsealed stars.** It lost 0–32 to Fortlite.
+- **The R8 loss** came from the bot doing ~20 edits while the turtle ate our starting stars. The engine is getting a fix: book edits will yield whenever a capture threat exists.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
