@@ -32,6 +32,10 @@ So games are decided early:
   - The wall city **crushed slow, edit-heavy builders 12–0**. That is what our engine was in R8–R9.
   - A 15-edit wall-domino hand (H1) lost 0–24. **Don't make more than ~9 edits against a wall builder.**
   - Rule: finish Fortlite's 9 edits, then attack their front starting flower immediately.
+- **Lab, "lead then seal" as a mid-game switch: NEGATIVE.** Turning Fortlite's walls into a "www" piece at ply 40–60 went 5–31 and 7–29; plain Fortlite went 33–3.
+  Spread-out Fortlite forts can't be walled shut, and pulling walls out of #2 opens holes in every later stamp.
+  **Keep plain Fortlite.** Sealing is a whole-game style (Eris), not something to switch into mid-game.
+  The real lesson stands: **never feed exposed stars to a sealer, and crack its starting stars early.**
 - Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
 
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
