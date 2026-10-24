@@ -95,6 +95,9 @@
   - **Stamp #2 at least 7 hexes from every enemy cell unless the stamp captures.** Use the front line only for breach+snipe. Overall win rate 77% vs 56%.
   - A 2-star domino sniper with a chevron #1 lost 11–53. **Keep Fortlite exactly as booked** (#3 = 1 star).
 
+- **Engine book tests:** the plain sniper lost 14–50 and the chevron #1 hands lost 6–26 and 6–18. **Fortlite exactly as booked stays best.**
+  The chevron is a tactic: reshape into it only when a 2-star capture is right there.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
