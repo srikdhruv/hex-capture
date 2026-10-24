@@ -4,10 +4,10 @@
 // ops:
 //   replay   {moves}                 -> {view}             (view: ply, turn, left, cells, blueprints, scores, stars, moves, result)
 //   view     {state}                 -> {view}             (state: server state / bare view / rules state)
-//   analyze  {state, moves:[...]}    -> {results:[{move, points, removedStars, removedCells, starsAfter, scoresAfter}]}
+//   analyze  {state, moves:[...]}    -> {results:[{move, points, removedStars, removedCells, starsAfter, scoresAfter, oppBestReply, oppBestReplyPoints}]}
 //   threats  {state, attacker}       -> {threats:[{move, points, starKeys}]}  (placements of attacker that capture stars)
 //   selfplay {plies, seed?}          -> {states:[view...], moves:[...]}  (random-ish legal game for tests)
-import { R, toState, toView, replay, describeMove, threats } from './bplib.mjs';
+import { R, toState, toView, replay, describeMove, threats, maxThreat } from './bplib.mjs';
 import { readFileSync } from 'node:fs';
 
 const req = JSON.parse(readFileSync(0, 'utf8'));
@@ -17,7 +17,7 @@ switch (req.op) {
   case 'view': out = { view: toView(toState(req.state).state) }; break;
   case 'analyze': {
     const { state } = toState(req.state);
-    out = { results: (req.moves || []).map((m) => { try { const { next, ...d } = describeMove(state, m); return d; } catch (e) { return { move: m, error: String(e.message || e) }; } }) };
+    out = { results: (req.moves || []).map((m) => { try { const { next, ...d } = describeMove(state, m); const t = maxThreat(next, 1 - d.seat); return { ...d, oppBestReply: t.move, oppBestReplyPoints: t.points }; } catch (e) { return { move: m, error: String(e.message || e) }; } }) };
     break;
   }
   case 'threats': {

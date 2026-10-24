@@ -554,6 +554,7 @@ def selftest(chooser, plies):
         seat = view["turn"]
         state = {"you": [seat], "turn": seat, "ply": view["ply"], "view": view,
                  "clock": {"remaining": list(clock), "increment": 15000}, "startsAt": None}
+        jlog("selftest", {"type": "state", "state": state})
         t0 = time.monotonic()
         move, info = chooser.choose("selftest", state, seat)
         used = int((time.monotonic() - t0) * 1000)
