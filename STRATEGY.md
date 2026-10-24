@@ -28,6 +28,7 @@
   It leaves #1 with 2 plains and #3 empty, so **you lose the sniper and the probe**.
   - Blue: `2:0,2>2:1,2` `1:1,0>2:0,2` `2:-1,1>2:-1,0` `3:0,0>2:0,1` `1:1,1>2:-2,4`
   - Red: `2:1,1>2:2,0` `1:1,0>2:1,1` `2:-1,2>2:-2,2` `3:0,0>2:-1,2` `1:1,1>2:0,4`
+- **Engine test: Hex19 LOST 1–31 to Fortlite** (mean diff −738). The extra edits and the 19-cell #2 cost more than they give.
 - **Recommended:** Fortlite (9 edits), keeping the sniper. Interleave the edits with safe #2 stamps whenever the enemy has no capture threat.
 
 ## 0c. Bigger ideas in testing (player + coordinator)
