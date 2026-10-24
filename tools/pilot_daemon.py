@@ -17,6 +17,10 @@ rules.json (re-read every ply; if it is broken, the last good version stays in f
   "protect_pieces": [2, 3],
   "star_safe_dist": 3,                   # non-capturing stamps putting a STAR within N hexes of enemy cells are skipped
   "take_capture_min": 0,                 # >0: play the top move with the most points if it has at least this many
+  "approach": {"ply_min": 10, "ply_max": 80, "min_gain": 2, "time_s": 1.0, "depth": 4},
+                                         # multi-turn approach planner (tools/approach.py): when no capture is
+                                         # available and its plan cuts distance-to-crack by >= min_gain (hex cost)
+                                         # within this turn, play its moves instead of the engine's build
   "when": [                              # conditional rules, in order; all listed conditions must hold
     {"if": {"ply_min": 40, "ply_max": 80, "capture_available": false, "engine_move": "*>*",
             "left": 2, "clock_below_ms": 30000, "score_diff_below": 0, "our_stars_above": 50,
@@ -38,6 +42,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(REPO, "client"))
+sys.path.insert(0, HERE)
 import bprules as B  # noqa: E402
 
 
@@ -93,6 +98,7 @@ class Daemon:
         self.rules_mtime = None
         self.out = out
         self.last_key = None
+        self.approach_next = None  # (room, ply, move): 2nd action of the current approach plan
 
     # --- io
     def log(self, s):
@@ -210,6 +216,27 @@ class Daemon:
             elif explicit not in ("engine", "best_capture", "best_non_edit") and ok(explicit):
                 return explicit, "when: pick" + tag
 
+        apr = rules.get("approach")
+        if isinstance(apr, dict) and apr.get("enabled", True) and not caps and view is not None \
+                and apr.get("ply_min", 0) <= ply <= apr.get("ply_max", 999):
+            nxt = self.approach_next
+            if nxt and nxt[0] == d.get("room") and nxt[1] == ply and ok(nxt[2]) and not match(nxt[2], veto):
+                self.approach_next = None
+                return nxt[2], "approach (2nd action of plan)" + tag
+            try:
+                import approach as AP
+                pl = AP.plan(view, seat, apr.get("depth", 4), apr.get("beam", 6), apr.get("time_s", 1.0))
+                gain = (pl["D0"] - pl["D_after_turn"]) if pl["D0"] != float("inf") else 0
+                first = pl["this_turn"][0] if pl["this_turn"] else None
+                if first and gain >= apr.get("min_gain", 2) and ok(first) and not match(first, veto):
+                    if len(pl["this_turn"]) > 1:
+                        self.approach_next = (d.get("room"), ply + 1, pl["this_turn"][1])
+                    return first, (f"approach: D {pl['D0']}->{pl['D_after_turn']} this turn, "
+                                   f"capture ~ply {pl['capture_ply']} ({pl['ms']}ms) over engine {engine}") + tag
+            except Exception as e:  # noqa: BLE001
+                notes.append(f"approach error {type(e).__name__}")
+        self.approach_next = None
+
         tmin = rules.get("take_capture_min") or 0
         if tmin > 0 and caps:
             best = max(cands, key=lambda m: pts.get(m, 0))
@@ -273,7 +300,7 @@ class Daemon:
             os.replace(tmp, path)
         tops = " ".join(f"{t['move']}:{t.get('points') or 0}" for t in (d.get("top") or [])[:4])
         dng = " ".join(f"{x['star']}:{x['points']}" for x in (d.get("danger") or [])[:3])
-        self.log(f"ply {ply} {d.get('colour')} sc={d.get('scores')} st={d.get('stars')} clk={d.get('clock_ms')} "
+        self.log(f"ply {ply} L{d.get('left_in_turn')} {d.get('colour')} sc={d.get('scores')} st={d.get('stars')} clk={d.get('clock_ms')} "
                  f"pick {mv} ({why}){' [dry-run]' if self.dry else ''} | top {tops} | danger {dng or '-'}")
         return True
 
