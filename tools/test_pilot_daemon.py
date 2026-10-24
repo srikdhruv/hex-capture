@@ -59,6 +59,9 @@ assert not dec([P1, P2] + edits[:1], w)[0].startswith("2@")
 stars_in = lambda m: any(v == "star" for v in g["blueprints"][0][int(m.split("@")[0]) - 1].values())  # noqa: E731
 star_m = next(m for m in places if stars_in(m))
 assert dec([star_m, E1], {"star_safe_dist": 99})[0] == E1
+w = {"when": [{"if": {"ply_min": 3}, "then": {"star_safe_dist": 99}}]}
+assert dec([star_m, E1], w)[0] == E1                                   # gated star_safe_dist applies
+assert dec([star_m, E1], {"when": [{"if": {"ply_min": 50}, "then": {"star_safe_dist": 99}}]})[0] == star_m
 
 # step(): writes pick with room/ply, removes stale picks, survives broken rules
 json.dump({"move": "x"}, open(os.path.join(d, "pick-1.json"), "w"))

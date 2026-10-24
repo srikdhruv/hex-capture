@@ -26,7 +26,8 @@ rules.json (re-read every ply; if it is broken, the last good version stays in f
     {"if": {"ply_min": 40, "ply_max": 80, "capture_available": false, "engine_move": "*>*",
             "left": 2, "clock_below_ms": 30000, "score_diff_below": 0, "our_stars_above": 50,
             "danger_points_above": 100, "engine_points_below": 50},
-     "then": {"veto": ["1:*"], "prefer": ["3@*"], "pick": "best_capture|best_non_edit|engine|<move>"},
+     "then": {"veto": ["1:*"], "prefer": ["3@*"], "pick": "best_capture|best_non_edit|engine|<move>",
+              "star_safe_dist": 5},                 # gated star_safe_dist (overrides the global one while matched)
      "note": "why"}
   ]
 }
@@ -172,6 +173,7 @@ class Daemon:
         veto = list(rules.get("veto") or [])
         prefer, notes = [], []
         explicit = None
+        sd_when = None  # star_safe_dist set by a matching when-rule (gated version of the global knob)
         diff = (d.get("scores") or [0, 0])[seat] - (d.get("scores") or [0, 0])[1 - seat]
         our_stars = (d.get("stars") or [0, 0])[seat]
         danger_pts = max([x.get("points") or 0 for x in d.get("danger") or []], default=0)
@@ -195,6 +197,8 @@ class Daemon:
                 notes.append(w.get("note") or "when")
                 if t.get("pick") and explicit is None:
                     explicit = t["pick"]
+                if t.get("star_safe_dist") is not None:
+                    sd_when = t["star_safe_dist"]
         tag = f" [{'; '.join(notes)}]" if notes else ""
 
         cands = [t["move"] for t in top if not match(t["move"], veto) and ok(t["move"])]
@@ -253,7 +257,7 @@ class Daemon:
             if kept and len(kept) < len(cands):
                 why.append("protect")
                 cands = kept
-        sd = rules.get("star_safe_dist")
+        sd = sd_when if sd_when is not None else rules.get("star_safe_dist")
         if sd and view is not None:
             kept = [m for m in cands if pts.get(m, 0) > 0 or not star_exposed(view, seat, m, sd)]
             if kept and len(kept) < len(cands):
