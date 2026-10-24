@@ -24,9 +24,16 @@ inline int movesLeftInTurn(int ply) { return ply == 0 ? 1 : std::min(2 - ((ply -
 inline const char* kindName(int k) { return k == WALL ? "wall" : k == STAR ? "star" : "plain"; }
 
 struct BP {
-  int n = 0, stars = 0;
+  int n = 0, stars = 0, diam = 0;
   int8_t q[24], r[24]; uint8_t k[24]; int d[24];
-  void finalize() { stars = 0; for (int i = 0; i < n; i++) { d[i] = r[i] * G + q[i]; if (k[i] == STAR) stars++; } }
+  void finalize() {
+    stars = 0; diam = 0;
+    for (int i = 0; i < n; i++) { d[i] = r[i] * G + q[i]; if (k[i] == STAR) stars++; }
+    for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) {
+      int dq = q[i] - q[j], dr = r[i] - r[j], ds = -dq - dr;
+      int h = (abs(dq) + abs(dr) + abs(ds)) / 2; if (h > diam) diam = h;
+    }
+  }
   int find(int qq, int rr) const { for (int i = 0; i < n; i++) if (q[i] == qq && r[i] == rr) return i; return -1; }
   void normalize() {
     if (!n) { finalize(); return; }
