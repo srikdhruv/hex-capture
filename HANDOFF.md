@@ -13,7 +13,7 @@ Use `--advise` for suggestions only (you play), and `--logs` to zip the game log
 
 ## 2. The live setup on the original machine (WSL, `~/hex-capture`)
 
-**Processes.** Both are detached (parent is init), so they survive the Claude session ending:
+**Processes** (STOPPED after the Swiss ended at 12:50 PDT; this is how they ran). Both were detached (parent is init), so they survived the Claude session ending:
 - `client/.venv/bin/python -u client/bot.py --no-update --pilot client/pilot`
   - Started with `ENGINE_CMD="$HOME/.hexbot/live/bp --threads 8"`.
   - Output goes to `client/logs/live-console.log`.
