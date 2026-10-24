@@ -14,7 +14,8 @@
   Watch their hand for small pieces, and keep the holes next to your stars filled. Sniper-counter tests are running.
 - **How it combines with your plan:** shields matter more than stacking (stacking alone lost 19–45).
   Spend your first edits on the **plain shield around #2's stars**, then on the long probe, then on wall placement.
-- **Tested against heuristic bots only.** The engine (which uses edit-then-stamp probes) is testing it now. Exact edit strings for both colours are coming.
+- **Confirmed against the real engine:** with the Fortlite opening, the engine beat itself without it **31–1** (Elo +597, average margin +1934). Fortlite is now the engine's **default** opening.
+- The 9 edits take up most of the first ~20 plies, and that is intended. Make a capture or block a threat in between only when it clearly matters.
 
 ### Exact Fortlite edit strings (checked against the official rules; play them **in this order**, with no other edits in between — stamps in between are fine)
 - **Blue (9):** `3:1,1>2:2,-1` `3:1,0>2:0,1` `3:0,0>2:-1,0` `3:0,0>2:-3,2` `3:-1,1>2:-3,3` `3:0,1>2:-2,1` `1:1,1>2:-1,4` `1:1,0>2:0,3` `1:0,0>2:-2,4`
