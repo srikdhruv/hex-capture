@@ -98,6 +98,17 @@
 - **Engine book tests:** the plain sniper lost 14–50 and the chevron #1 hands lost 6–26 and 6–18. **Fortlite exactly as booked stays best.**
   The chevron is a tactic: reshape into it only when a 2-star capture is right there.
 
+## 0e. Endgame (lab #11)
+
+- **Order of the last turns:** Blue 115–116 → Red 117–118 → **Blue 119**, the final single action.
+- **From about ply 105:** stop expanding toward the enemy and turn every threat into a capture. Stars are worth nothing at the end; only score counts.
+  A late #2 stamp only pays if your next action captures with the bigger multiplier.
+- **Blue at 119:** make the single biggest capture with any piece. Never build.
+- **Red at 117–118:** two captures, or breach on 117 and snipe on 118.
+  If you have only one capture, take it on 117 and use 118 to kill Blue's 1-action threats: fill the hole next to your star, or erase Blue's cell beside it.
+  **Leave 0 exposed stars after 118.**
+- **Blue at 115–116:** capture the most. Prefer captures that also plug your own holes — the sniper stamp itself fills one.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
