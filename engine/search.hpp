@@ -33,7 +33,7 @@ struct Params {
   double ordMy = 0.8;     // ordering: weight of my follow-up capture (mid-turn)
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
   double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
-  double approachW = 0;     // positional: (their approach cost - ours) to a hex next to an enemy star
+  double approachW = 5;     // positional: (their approach cost - ours) to a hex next to an enemy star
   double expoB = 0;         // positional: BFS-reachable stars (targets) * multiplier, both sides
   double mob = 0.02;      // positional: frontier size difference
   double hcov = 0;        // hand: covered star-neighbour count of best star blueprint (shield value)
