@@ -11,7 +11,7 @@ Env:
   STRATEGYJAM_URL    (default https://strategyjam.org)
   TOURNAMENT_ID      (default f46b70969dee; set to "" or pass --no-tournament for challenges only)
   ENGINE_CMD         (default <repo>/engine/bp; falls back to node tools/greedy.mjs)
-  MOVE_TIME_MS       (default 9000: target think time per action)
+  MOVE_TIME_MS       (default 6500: target think time per action; increment is +15s per 2-action TURN)
   MAX_TIME_MS        (optional hard cap per action; same as --max-time-ms)
 Emergency mode: with < 10s on our clock, think at most 1000ms; with < 2.5s, move instantly.
 
@@ -603,8 +603,8 @@ def selftest(chooser, plies):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="compute and log moves but never POST (no check-in, no moves)")
-    ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "9000")),
-                    help="target think time per action (default 9000)")
+    ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "6500")),
+                    help="target think time per action (default 6500)")
     ap.add_argument("--max-time-ms", type=int, default=int(os.environ.get("MAX_TIME_MS", "0")) or None,
                     help="hard cap on think time per action, overrides everything else")
     ap.add_argument("--engine", default=os.environ.get("ENGINE_CMD"), help="engine command (default <repo>/engine/bp)")
