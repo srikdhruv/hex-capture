@@ -4,6 +4,18 @@
 > Rules source: exact port of the official game code in `reference/rules.mjs`.
 > Status: v1 (lab + engine findings merged; read 0a / 0b / 0 first). Lab results and engine findings will be merged in as they arrive.
 
+## 🏆 WHAT THE TOP PLAYERS DO (scout, real top-board games R10–R11)
+
+- **Most of the top 16 are WALL SEALERS:** Zip Zap Zo #1, Alittar #2, RyanFourSJM #4, ZoraZoé #7, rainbowbutter #9, NDMath #11.
+  - In 4–6 opening edits they empty #2's stars into #1/#3, which leaves #2 as a **3-wall bent chain ("www")**.
+  - They stamp it everywhere (about 18 walls by ply 20) and keep only their starting stars on the board.
+  - They are **sealed by ply 32–72** and win with small www snipes, e.g. 36–31. The opponent resigns.
+- **Winners were fully sealed in 59% of games; losers in 12%.**
+- **Star floods (big star stamps, scores in the thousands) lose to sealers.** Two R11 star-flood players resigned while still ahead on points, because the sealer was sealed.
+- **Sealer openings (legal as written):**
+  - Blue (NDMath): `2:1,0>3:-2,1 2:0,1>3:-3,1 2:1,1>2:0,1 2:0,2>3:-1,0 [stamp] 2:-1,1>3:-1,2`
+  - Red (RyanFourSJM): `2:0,1>3:2,1 2:0,0>3:3,1 2:-2,1>2:-1,1 2:-2,2>3:4,1 2:0,1>3:5,1`, then www stamped about 20 times; sealed at ply 44.
+
 ## ‼ THE REAL GAME (learned the hard way in R8 and R9 — read this first)
 
 **A side whose stars are fully walled off — no empty path from the enemy to any hole beside a star — can never be scored on again.** Your multiplier is worthless against it.
