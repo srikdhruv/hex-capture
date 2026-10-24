@@ -30,6 +30,18 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
 - Losing a star is the mirror image. **A star you can't defend is a gift to the opponent.**
 - Captures late in the game are worth the most (multipliers are big), and there is no time left to retaliate.
 
+## 0. TL;DR — play this way (updated with lab data)
+
+1. **Stamp blueprint #2 (the 4-star flower) almost every action.** In strong bot-vs-bot games nearly every action is a #2 stamp:
+   it adds +4 to your multiplier *and* it is your main attacker. Final star counts reach ~75–200 per side, so a late star capture is worth 75–200 points.
+2. **Before every stamp, run the threat check:** *"After my turn, can the enemy touch any of my edge stars with 1–2 stamps?"*
+   A bot that skipped this check lost 27 of 30 games.
+3. **If a stamp can also take a star, take it.** Capture-leaning bots beat pure hoarders 73% vs 40% (n=30 each).
+   Best case: grow and capture with the same #2 stamp, placed so that one of its cells touches an exposed enemy star.
+4. **Blue's first move: don't drop #2 near the middle.** These first moves lose a star to Red's first turn:
+   `2@1,-3 2@-1,1 2@-1,-4 2@-4,2 2@-3,-3 2@-3,-4 2@-2,-4 2@-5,1 2@-5,2 2@-6,2`.
+5. **Clock: the +15 s increment comes once per 2-action turn, not per action.** Budget about 7 s per action, or you will drain.
+
 ## 3. Principles (v0, first-principles — refined below as data comes in)
 
 1. **Build the multiplier where they can't reach.** The board is infinite. Stamp star-rich blueprints (#2 adds 4 stars) on
@@ -65,4 +77,7 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
 
 ## 6. Findings log (lab + engine)
 
-_(entries added as experiments finish)_
+- **Lab #1** (90 heuristic-bot games, fast engine verified against the rules): strong play is mostly #2 stamps.
+  The threat-aware bot beat the threat-blind one 27–3. Weighting captures higher won 73%; heavy star hoarding won 40%.
+  10 of 105 Blue first moves lose a star immediately (listed in TL;DR).
+- **Engine v1 selfplay:** scores of 3–5k, ~75 stars per side at the end.
