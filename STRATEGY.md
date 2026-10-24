@@ -10,6 +10,12 @@
 - **Result:** won **32–0** against the no-edit baseline (16–0 as each colour), average margin **+6900**, even after paying 9 actions for the edits.
 - **A bigger version also went 32–0:** a full radius-2 hex of 19 cells, with 6 stars + 1 wall inside and 2 walls + 10 plains on the rim (14 edits).
 - **Why it works:** to reach an interior star, the enemy must first erase a shield plain. That leaves a **1-hex hole that a 7-hex flower can't fit into**, so they need a tiny probe piece. Every stamp you make is +4 stars they can't take.
+- **Defensive geometry (Lab #5, exact search):**
+  1. **Read the enemy's HAND first.** If none of their pieces is 1–3 hexes, your sealed Fortlite stars **cannot be captured**, even when the enemy is touching them. Just keep the shields intact.
+  2. **If they hold a sniper:** they stamp a big piece next to your shield (it erases a whole band of it), then snipe into the hole.
+     That reaches up to 6 hexes and takes 1 star per turn. Keep forts **7+ hexes** from their cells, or accept losing 1 star per turn at the front.
+  3. **After they snipe in, erase their sniper cell next turn.** If it is a star (Fortlite's #3 is), that's free points for you.
+  - An unsealed 4-star flower can lose up to 2 stars to a gap of 7 or less. The 6-star forts leak 2 stars per breach.
 - **Weak point:** the enemy cuts a piece down to 1–2 cells (a "sniper"), breaches with action 1 and snipes with action 2.
   Watch their hand for small pieces, and keep the holes next to your stars filled. Sniper-counter tests are running.
 - **How it combines with your plan:** shields matter more than stacking (stacking alone lost 19–45).
