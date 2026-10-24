@@ -21,6 +21,12 @@ So games are decided early:
   block a channel, plug the hole next to your star, extend your seal, or snipe. As a 2-wall "ww" domino it does all of this and can never be erased.
 - **Be annoying: deny space.** A stamp needs its whole footprint empty, so a few scattered cells — walls especially — stop the enemy's big pieces from fitting
   and cut their paths to your stars.
+- **How long a wall builder takes to seal (lab measurement on the real logs, exact count of walls still needed):**
+  - Sealing all 6 starting stars needs **at least 26 walls (9+ "www" stamps)**: 9 for the 4-star flower and 12 for each inner flower.
+    The **front inner flower** (Blue's (-2,0), Red's (2,0)) is usually sealed **last**.
+  - R9 (aryan) was crackable until about **ply 55**. Walls still needed: 27 at ply 8, 16 at ply 40, 9 at ply 48, 3 at ply 56.
+  - R8 (Eris) was **never sealed** — we lost 0–84 only because our engine never attacked.
+  - **Rule: against a wall builder, attack their front inner flower by about ply 50.** Breach a shield plain with #2, then snipe with #3.
 - Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
 
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
