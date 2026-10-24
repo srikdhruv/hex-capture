@@ -29,7 +29,7 @@ PLANS.blue_d1 = d1(0); PLANS.red_d1 = d1(1);
 // D2: fortlite + E/NE wall out to rim corner + #3's star into the vacated ring spot (5 interior stars; #3 empty; #1 star+3 plains)
 const FB = PLANS.blue_fort; const FR = PLANS.red_fort;
 export { PLANS };
-if (process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_d1', 'red_d1']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_d1', 'red_d1']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
 // D2 "Fortlite-5P": like Fortlite but #3 keeps 1 PLAIN (star-free sniper) and its star goes into #2's interior
 // (a ring wall steps out to the rim corner first). 11 edits. #2 = 5 interior stars, 3 walls, 9 plains; #1 = star + 2 plains; #3 = 1 plain.
 PLANS.blue_d2 = runPlan(0, [
@@ -40,7 +40,7 @@ PLANS.red_d2 = runPlan(1, [
   [2, [1, 0], 1, [2, 0]], [2, [1, -1], 1, [2, -1]], [2, [0, -1], 1, [1, 1]], [2, [-1, 0], 1, [0, -2]], [2, [-1, 1], 1, [1, -2]],
   [0, [1, 0], 1, [-1, -1]], [0, [1, -1], 1, [-2, 2]], [0, [0, -1], 1, [-2, 1]], [0, [-1, 0], 1, [-1, 2]],
   [1, [-1, 0], 1, [-2, 0]], [2, [0, 0], 1, [-1, 0]]]);
-if (process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_d2', 'red_d2']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_d2', 'red_d2']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
 // "FortliteP": #2 identical to Fortlite (4 sealed stars), but #3 ends as 1 PLAIN sniper; #3's star is parked in #1 (#1 = 2 stars + 2 plains). 10 edits.
 const fpSteps = (dst) => [
   [2, [1, 0], 1, dst[0]], [2, [1, -1], 1, dst[1]], [2, [0, -1], 1, dst[2]], [2, [-1, 0], 1, dst[3]], [2, [-1, 1], 1, dst[4]],
@@ -48,4 +48,17 @@ const fpSteps = (dst) => [
   [2, [0, 0], 0, [1, 0]]];
 PLANS.blue_fortP = runPlan(0, fpSteps([[2, -2], [2, -1], [1, -2], [-2, 0], [-2, 1], [-1, -1], [0, 2], [1, 1], [-1, 2]]));
 PLANS.red_fortP = runPlan(1, fpSteps([[2, 0], [2, -1], [1, 1], [0, -2], [1, -2], [-1, -1], [-2, 2], [-2, 1], [-1, 2]]));
-if (process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_fortP', 'red_fortP']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_fortP', 'red_fortP']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+// "FortliteS2": Fortlite + 1 edit: #1's star joins #3 -> #3 = 2-star domino sniper, #1 = 3-plain 120-degree chevron (star-free probe). 10 edits.
+PLANS.blue_fortS2 = runPlan(0, [...PLANS.blue_fort.steps, [0, [0, 0], 2, [1, 0]]]);
+PLANS.red_fortS2 = runPlan(1, [...PLANS.red_fort.steps, [0, [0, 0], 2, [1, 0]]]);
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_fortS2', 'red_fortS2']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+// "Turtle" (opponent's hand): #3 = all 6 stars + 6 plains (never stamped), #2 = 3-wall straight line, #1 = 6-plain straight line. 11 edits.
+const lineS = [[0, [1, 0], 0, [2, -1]], [0, [0, 1], 0, [3, -1]], [0, [-1, 1], 0, [-1, -1]], [0, [-1, 0], 0, [-2, -1]]];
+PLANS.blue_turtle = runPlan(0, [
+  [1, [0, 0], 2, [2, 0]], [1, [1, -1], 2, [2, -1]], [1, [1, 0], 1, [0, 0]], [1, [0, -1], 1, [1, -1]], [1, [-1, 0], 2, [3, -1]], [1, [0, 1], 2, [3, 0]],
+  [0, [0, 0], 2, [2, 1]], ...lineS]);
+PLANS.red_turtle = runPlan(1, [
+  [1, [0, 0], 2, [2, 0]], [1, [1, 0], 2, [2, -1]], [1, [0, 1], 1, [0, 0]], [1, [1, -1], 1, [1, 0]], [1, [0, -1], 2, [3, -1]], [1, [-1, 1], 2, [3, 0]],
+  [0, [0, 0], 2, [2, 1]], ...lineS]);
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_turtle', 'red_turtle']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }

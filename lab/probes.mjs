@@ -34,7 +34,7 @@ export function crack(designBp, probe, big = PLANS.red_fort.hand[1]) {
 const P = polys(3);
 const show = (bp) => Object.keys(bp).join(' ');
 const designs = { fortlite: PLANS.blue_fort.hand[1], 'D2 fortlite-5P': PLANS.blue_d2.hand[1], 'fort18': PLANS.blue_d1.hand[1], hex19: PLANS.blue_fort19.hand[1] };
-if (process.argv[1].endsWith('probes.mjs')) {
+if (process.argv[1] && process.argv[1].endsWith('probes.mjs')) {
   console.log('probes:', P.length);
   for (const [dn, d] of Object.entries(designs)) {
     const row = P.map((p) => crack(d, p));

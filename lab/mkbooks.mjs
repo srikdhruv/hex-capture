@@ -9,4 +9,6 @@ function book(b, r) {
 fs.writeFileSync('books/fortlite.json', JSON.stringify(book(PLANS.blue_fort, PLANS.red_fort), null, 1));
 fs.writeFileSync('books/hex19.json', JSON.stringify(book(PLANS.blue_fort19, PLANS.red_fort19), null, 1));
 fs.writeFileSync('books/fort18.json', JSON.stringify(book(PLANS.blue_d1, PLANS.red_d1), null, 1));
+fs.writeFileSync('books/fortliteP.json', JSON.stringify(book(PLANS.blue_fortP, PLANS.red_fortP), null, 1));
+fs.writeFileSync('books/turtle.json', JSON.stringify(book(PLANS.blue_turtle, PLANS.red_turtle), null, 1));
 console.log('ok');

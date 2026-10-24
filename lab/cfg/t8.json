@@ -1,0 +1,3 @@
+[{"name":"fortlite(9)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"fortlite+minGap7","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"minGap":7},
+ {"name":"fortS2 domino sniper(10)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fortS2","red_fortS2"]}]

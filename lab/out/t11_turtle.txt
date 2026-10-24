@@ -1,0 +1,5 @@
+games 32 in 683s
+fortlite               win% 100.0  W-L-D 32-0-0  blue 16-0 red 16-0  avgMargin 2447 avgPts 2592
+turtle(11, never stamps stars) win%   0.0  W-L-D 0-32-0  blue 0-16 red 0-16  avgMargin -2447 avgPts 145
+fortlite (B) vs turtle(11, never stamps stars) (R) 16-0-0
+turtle(11, never stamps stars) (B) vs fortlite (R) 0-16-0

@@ -1,0 +1,10 @@
+games 96 in 592s
+fortlite+minGap7       win%  76.6  W-L-D 49-15-0  blue 22-10 red 27-5  avgMargin 527 avgPts 1963
+fortlite(9)            win%  56.3  W-L-D 36-28-0  blue 12-20 red 24-8  avgMargin 111 avgPts 1343
+fortS2 domino sniper(10) win%  17.2  W-L-D 11-53-0  blue 2-30 red 9-23  avgMargin -638 avgPts 1374
+fortlite(9) (B) vs fortlite+minGap7 (R) 5-11-0
+fortlite(9) (B) vs fortS2 domino sniper(10) (R) 7-9-0
+fortlite+minGap7 (B) vs fortlite(9) (R) 6-10-0
+fortlite+minGap7 (B) vs fortS2 domino sniper(10) (R) 16-0-0
+fortS2 domino sniper(10) (B) vs fortlite(9) (R) 2-14-0
+fortS2 domino sniper(10) (B) vs fortlite+minGap7 (R) 0-16-0

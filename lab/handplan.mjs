@@ -18,7 +18,7 @@ export function runPlan(seat, steps) {
     shift = shift.map((s, i) => [s[0] - shifts[i][0], s[1] - shifts[i][1]]);
     hand = h2;
   }
-  return { moves, hand, shift };
+  return { moves, hand, shift, steps };
 }
 export function draw(bp) {
   const ks = Object.keys(bp).map(R.parse); const rmin = Math.min(...ks.map((k) => k[1])), rmax = Math.max(...ks.map((k) => k[1]));

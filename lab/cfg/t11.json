@@ -1,0 +1,2 @@
+[{"name":"fortlite","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"turtle(11, never stamps stars)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_turtle","red_turtle"],"starFreeAfter":0}]

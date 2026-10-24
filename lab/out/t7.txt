@@ -1,0 +1,5 @@
+games 48 in 402s
+fortlite(9)            win%  91.7  W-L-D 44-4-0  blue 20-4 red 24-0  avgMargin 616 avgPts 1378
+fortliteP plain sniper(10) win%   8.3  W-L-D 4-44-0  blue 0-24 red 4-20  avgMargin -616 avgPts 761
+fortlite(9) (B) vs fortliteP plain sniper(10) (R) 20-4-0
+fortliteP plain sniper(10) (B) vs fortlite(9) (R) 0-24-0

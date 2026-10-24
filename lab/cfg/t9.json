@@ -1,0 +1,3 @@
+[{"name":"fortlite edits first","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"fortlite after 1 stamp-turn","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"seqStart":3},
+ {"name":"fortlite after 2 stamp-turns","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"seqStart":7}]

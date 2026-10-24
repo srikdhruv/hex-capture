@@ -37,4 +37,4 @@ export const DESIGNS = {
   sniper: { cost: 6, hand: sniper },
 };
 function count(h) { const c = { star: 0, wall: 0, plain: 0 }; for (const b of h) for (const v of Object.values(b)) c[v]++; return c; }
-if (process.argv[1].endsWith('designs.mjs')) for (const [n, d] of Object.entries(DESIGNS)) for (const s of [0, 1]) { const h = d.hand(s); console.log(n, s, JSON.stringify(count(h)), h.map((b) => Object.keys(b).length)); }
+if (process.argv[1] && process.argv[1].endsWith('designs.mjs')) for (const [n, d] of Object.entries(DESIGNS)) for (const s of [0, 1]) { const h = d.hand(s); console.log(n, s, JSON.stringify(count(h)), h.map((b) => Object.keys(b).length)); }

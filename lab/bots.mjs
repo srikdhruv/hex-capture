@@ -126,6 +126,15 @@ export function chooseTurn(g, P) {
   // optional scripted edits (opening reshape plan)
   if (P.edits) { const e = P.edits(g, s); if (e) return e; }
   let pl = g.placements(s);
+  let gapFilter = null;
+  if (P.minGap) {
+    // BFS distance from enemy cells; star-piece stamps must keep gap >= minGap unless they capture
+    const o = 1 - s, gen = ++dgen; let fr = [];
+    for (const i of g.occupied(o)) { DG[i] = gen; DD[i] = 0; fr.push(i); }
+    for (let d = 1; d < P.minGap && fr.length; d++) { const nf = []; for (const c of fr) for (let k = 0; k < 6; k++) { const n = c + NB[k]; if (DG[n] !== gen) { DG[n] = gen; DD[n] = d; nf.push(n); } } fr = nf; }
+    gapFilter = (list) => { const f = []; for (let j = 0; j < list.length; j += 2) { const bp = g.hands[s][list[j]], a = list[j + 1]; let ok = true; if (bp.stars) { for (const off of bp.offs) if (DG[a + off] === gen) { ok = false; break; } if (!ok && g.peekStars(s, list[j], a) > 0) ok = true; } if (ok) f.push(list[j], a); } return f.length ? f : list; };
+    pl = gapFilter(pl);
+  }
   if (P.starFreeAfter != null && g.ply >= P.starFreeAfter) { const f = []; for (let j = 0; j < pl.length; j += 2) if (!g.hands[s][pl[j]].stars) f.push(pl[j], pl[j + 1]); if (f.length) pl = f; }
   if (!pl.length) return ['pass'];
   // first action candidates by static eval after one action
@@ -154,7 +163,7 @@ export function chooseTurn(g, P) {
     // also include top capturing first moves and erasers? (static eval already credits captures)
     for (const [, b, a] of top) {
       const u = g.place(b, a);
-      const pl2 = g.placements(s);
+      let pl2 = g.placements(s); if (gapFilter) pl2 = gapFilter(pl2);
       for (let j = 0; j < pl2.length; j += 2) {
         const u2 = g.place(pl2[j], pl2[j + 1]);
         seqs.push([staticEval(g, s, P) + (P.noise ? Math.random() * P.noise : 0), [[b, a], [pl2[j], pl2[j + 1]]]]);

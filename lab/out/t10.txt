@@ -1,0 +1,11 @@
+games 60 in 290s
+fortlite+minGap13      win%  60.0  W-L-D 12-8-0  blue 5-5 red 7-3  avgMargin 3 avgPts 1296
+fortlite               win%  51.7  W-L-D 31-29-0  blue 11-19 red 20-10  avgMargin -13 avgPts 1304
+fortlite+minGap7       win%  50.0  W-L-D 10-10-0  blue 3-7 red 7-3  avgMargin 39 avgPts 1309
+fortlite+minGap10      win%  35.0  W-L-D 7-13-0  blue 2-8 red 5-5  avgMargin -4 avgPts 1347
+fortlite (B) vs fortlite+minGap7 (R) 3-7-0
+fortlite (B) vs fortlite+minGap10 (R) 5-5-0
+fortlite (B) vs fortlite+minGap13 (R) 3-7-0
+fortlite+minGap7 (B) vs fortlite (R) 3-7-0
+fortlite+minGap10 (B) vs fortlite (R) 2-8-0
+fortlite+minGap13 (B) vs fortlite (R) 5-5-0

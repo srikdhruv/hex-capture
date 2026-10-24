@@ -1,0 +1,10 @@
+games 48 in 406s
+fortlite edits first   win%  93.8  W-L-D 30-2-0  blue 16-0 red 14-2  avgMargin 541 avgPts 1552
+fortlite after 1 stamp-turn win%  46.9  W-L-D 15-17-0  blue 9-7 red 6-10  avgMargin 63 avgPts 1457
+fortlite after 2 stamp-turns win%   9.4  W-L-D 3-29-0  blue 3-13 red 0-16  avgMargin -604 avgPts 1229
+fortlite edits first (B) vs fortlite after 1 stamp-turn (R) 8-0-0
+fortlite edits first (B) vs fortlite after 2 stamp-turns (R) 8-0-0
+fortlite after 1 stamp-turn (B) vs fortlite edits first (R) 1-7-0
+fortlite after 1 stamp-turn (B) vs fortlite after 2 stamp-turns (R) 8-0-0
+fortlite after 2 stamp-turns (B) vs fortlite edits first (R) 1-7-0
+fortlite after 2 stamp-turns (B) vs fortlite after 1 stamp-turn (R) 2-6-0

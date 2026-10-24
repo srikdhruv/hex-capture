@@ -1,0 +1,4 @@
+[{"name":"fortlite","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"fortlite+minGap7","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"minGap":7},
+ {"name":"fortlite+minGap10","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"minGap":10},
+ {"name":"fortlite+minGap13","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"],"minGap":13}]
