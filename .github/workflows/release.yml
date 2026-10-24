@@ -121,5 +121,6 @@ jobs:
           git push -f origin latest || echo "::warning::could not move the 'latest' tag; assets are still updated"
           gh release view latest >/dev/null 2>&1 || gh release create latest --title "hexbot (latest)" \
             --notes "Rolling build of the Blueprints bot. See README: Play with one command."
-          gh release upload latest out/* --clobber
+          gh release upload latest out/hexbot-* --clobber
+          gh release upload latest out/version.txt --clobber   # last: launchers key off version.txt
           gh release edit latest --notes "Rolling build of the Blueprints bot from ${GITHUB_SHA}. See README: Play with one command."

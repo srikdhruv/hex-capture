@@ -44,6 +44,7 @@ class Updater:
         self.latest_sha = None
         self.not_before = 0.0  # rate-limit / failure backoff (epoch seconds)
         self.failed_sha = None
+        self.failed_at = 0.0
 
     def enabled(self):
         return FROZEN and BUILD_SHA != "dev" and not os.environ.get("HEXBOT_NO_UPDATE")
@@ -79,7 +80,9 @@ class Updater:
 
     def newer_available(self):
         sha = self.check()
-        return sha if sha and sha != BUILD_SHA and sha != self.failed_sha else None
+        if sha and sha == self.failed_sha and time.time() - self.failed_at < 1800:
+            return None  # give a failed update 30 minutes before trying the same build again
+        return sha if sha and sha != BUILD_SHA else None
 
     def install(self, sha):
         """Download + verify + swap. Returns the path of the (new) executable, or None on failure."""
@@ -117,6 +120,7 @@ class Updater:
         except Exception as e:  # noqa: BLE001
             self.log(f"update to {sha[:12]} failed: {e}; staying on {BUILD_SHA[:12]}")
             self.failed_sha = sha
+            self.failed_at = time.time()
             self.not_before = time.time() + 600
             try:
                 os.remove(new)
