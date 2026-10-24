@@ -223,6 +223,7 @@ class Chooser:
         self.cmd = _engine_cmd(engine_spec)
         self.cap_ms = cap_ms
         self.max_ms = max_ms
+        self.extra_args = []  # strategy knobs from the pilot (control.json engine_args)
         exe = self.cmd[0]
         if FROZEN and os.path.isfile(exe) and not os.access(exe, os.X_OK):
             try:
@@ -261,7 +262,7 @@ class Chooser:
 
         attempts = []
         if self.engine_available():
-            attempts.append(("engine", self.cmd, budget, budget / 1000 + 1.5))
+            attempts.append(("engine", self.cmd + list(self.extra_args), budget, budget / 1000 + 1.5))
         elif "noengine" not in self._warned:
             self._warned.add("noengine")
             log("engine not found at", self.cmd[0], "- using fallback policy")
@@ -284,7 +285,7 @@ class Chooser:
                 pv = res.get("pv") or []
                 if len(pv) >= 2 and pv[0] == move and view.get("left", 1) >= 2:
                     self.pv_cache[(room, ply + 1)] = pv[1]
-                info.update(source=name, eval=res.get("eval"), pv=pv[:6], top=(res.get("top") or [])[:5],
+                info.update(source=name, eval=res.get("eval"), pv=pv[:6], top=(res.get("top") or [])[:8],
                             policy_ms=res.get("_ms"))
                 return move, info
             log(f"[{room}] {name} returned illegal/missing move {move!r}; trying fallback")
@@ -306,7 +307,7 @@ class Chooser:
 # ----------------------------------------------------------------------------- network client
 
 class Bot:
-    def __init__(self, base, token, tournament, chooser, dry_run=False, advise=False):
+    def __init__(self, base, token, tournament, chooser, dry_run=False, advise=False, pilot=None):
         self.base = base
         self.headers = {"Authorization": "Bearer " + token, "User-Agent": "hexbot/1.0 (+https://github.com/srikdhruv/hex-capture)"}  # default Python-urllib UA is blocked by Cloudflare (error 1010)
         for variable, header in [("CF_ACCESS_CLIENT_ID", "CF-Access-Client-Id"),
@@ -318,6 +319,7 @@ class Bot:
         self.dry_run = dry_run or advise
         self.advise = advise     # human plays; we only print advice. Never POSTs anything.
         self.reminded = set()
+        self.pilot = pilot       # pilot.Pilot (file-based co-player) or None
         self.stopped = threading.Event()
         self.lock = threading.RLock()
         self.rooms = {}          # room -> tournament id (None for standalone); cleared on reconnect
@@ -419,7 +421,10 @@ class Bot:
         self.last_seen[room] = time.time()
         if view.get("result") and room not in self.finished:
             self.finished.add(room)
-            log(self.game_summary(room, state))
+            summary = self.game_summary(room, state)
+            log(summary)
+            if self.pilot:
+                self.pilot.write_result(room, state, summary)
         with self.lock:
             old = self.latest.get(room)
             if old is not None and (old.get("ply") or 0) > (state.get("ply") or 0) and not view.get("result"):
@@ -577,7 +582,10 @@ class Bot:
             log(f"[{room}] game starts in {delay:.1f}s; waiting")
             if self.stopped.wait(delay + 0.1):
                 return
-        move, info = self.chooser.choose(room, state, turn)
+        if self.pilot:
+            move, info = self.pilot.decide(self.chooser, room, state, turn)
+        else:
+            move, info = self.chooser.choose(room, state, turn)
         fails = self.fail_count.get((room, ply), 0)
         if fails >= 2:  # same ply rejected twice: don't loop on one move, try a different legal move
             alts = [m for m in view["moves"] if m != move]
@@ -814,7 +822,7 @@ def bpcli(req):
     return json.loads(out.stdout)
 
 
-def selftest(chooser, plies, show_advice=False):
+def selftest(chooser, plies, show_advice=False, pilot=None):
     """Play `plies` plies locally (both seats) through Chooser with a simulated server state + clock."""
     moves, clock = [], [60000, 60000]
     game = bprules.setup()
@@ -827,7 +835,10 @@ def selftest(chooser, plies, show_advice=False):
                  "clock": {"remaining": list(clock), "increment": 15000}, "startsAt": None}
         jlog("selftest", {"type": "state", "state": state})
         t0 = time.monotonic()
-        move, info = chooser.choose("selftest", state, seat)
+        if pilot:
+            move, info = pilot.decide(chooser, "selftest", state, seat)
+        else:
+            move, info = chooser.choose("selftest", state, seat)
         used = int((time.monotonic() - t0) * 1000)
         clock[seat] = clock[seat] - used + 15000
         assert move in view["moves"], move
@@ -917,6 +928,17 @@ def detect_tournament(base):
     return None
 
 
+def make_pilot(args):
+    if args.pilot is None:
+        return None
+    import pilot as pilot_mod
+    d = args.pilot or (os.path.join(HOME_DIR, "pilot") if FROZEN else os.path.join(HERE, "pilot"))
+    p = pilot_mod.Pilot(d, log)
+    log(f"PILOT interface on: decisions -> {p.dir}/decision.json, control <- {p.dir}/control.json, "
+        f"picks <- {p.dir}/pick-<ply>.json")
+    return p
+
+
 def pack_logs(n):
     """Print the log folder and zip the last n game logs (+ recent bot logs) into one file to send.
     The token is never included: it is not written to logs, and any accidental occurrence is redacted."""
@@ -954,6 +976,8 @@ def main():
         print(BUILD_SHA)
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--pilot", nargs="?", const="", default=None, metavar="DIR",
+                    help="pilot control interface via files in DIR (default client/pilot, or ~/.hexbot/pilot when packaged)")
     ap.add_argument("--advise", action="store_true",
                     help="advice only: you play manually (no Engine label); never checks in or posts moves")
     ap.add_argument("--dry-run", action="store_true", help="compute and log moves but never POST (no check-in, no moves)")
@@ -1009,7 +1033,7 @@ def main():
         f"think {args.move_time_ms}ms/action, hard cap {args.max_time_ms or '-'}ms, "
         f"emergency {EMERGENCY_THINK_MS}ms below {EMERGENCY_CLOCK_MS // 1000}s")
     if args.selftest is not None:
-        selftest(chooser, args.selftest, show_advice=args.advise)
+        selftest(chooser, args.selftest, show_advice=args.advise, pilot=make_pilot(args))
         return
 
     base = os.environ.get("STRATEGYJAM_URL", "https://strategyjam.org").rstrip("/")
@@ -1031,7 +1055,7 @@ def main():
         chooser.cap_ms = int(os.environ.get("ADVISE_TIME_MS", "5000"))
         print("ADVICE ONLY: hexbot will never check in or send moves, so your entry keeps no Engine label.\n"
               "Check in yourself on strategyjam.org every round and play the moves you choose.", flush=True)
-    bot = Bot(base, token, tournament, chooser, dry_run=args.dry_run, advise=args.advise)
+    bot = Bot(base, token, tournament, chooser, dry_run=args.dry_run, advise=args.advise, pilot=make_pilot(args))
     bot.run()
     if bot.reexec_target:
         updater.reexec(bot.reexec_target, sys.argv[1:], token, BUILD_SHA)

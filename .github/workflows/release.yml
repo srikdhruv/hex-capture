@@ -77,7 +77,7 @@ jobs:
           echo "BUILD_SHA = \"${GITHUB_SHA}\"" > client/_build.py
           pyinstaller --onefile --name "${{ matrix.asset }}" \
             --add-binary "engine/bp${EXE}:engine" \
-            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --collect-data certifi \
+            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --hidden-import pilot --collect-data certifi \
             --paths client client/bot.py
           ls -la dist
 

@@ -82,6 +82,30 @@ python3 tools/arena.py --a "engine/versions/bp-<sha> --time-ms 1000" --b "node t
 Color-swapped pairs from random openings, W/D/L, score % and Elo with 95% CI, mean score diff with
 95% CI, per-color breakdown, faults. `--out results.jsonl` keeps every game's moves.
 
+## Pilot interface (outside co-player, e.g. an LLM)
+
+```bash
+client/.venv/bin/python client/bot.py --pilot              # files in client/pilot/
+client/.venv/bin/python client/bot.py --pilot /some/dir    # or another folder
+~/.hexbot/hexbot-linux-x64 --pilot                         # packaged build: ~/.hexbot/pilot/
+```
+
+On each of our plies, before the move is sent:
+- The bot writes `decision.json` atomically. It contains room, ply, seat, colour, scores, stars, clock_ms,
+  left_in_turn, the engine's top 8 (move, score, points, captures), engine_move, board_text, danger, both
+  hands, deadline_epoch_ms and pick_file.
+- It then reads `control.json`. A missing or malformed file is ignored. Format:
+  `{"engine_args": "--p alpha=0", "force": {"<ply>": "<move>"}, "veto": [...], "prefer_wait_ms": 3000, "note": "..."}`
+  - `force` plays that move immediately, if legal, without running the engine.
+  - `veto` makes the bot play the best non-vetoed engine move instead.
+  - `engine_args` are added to the engine command from now on.
+  - `prefer_wait_ms` makes the bot wait for `pick-<ply>.json` (`{"move": "..."}`). If no legal pick
+    arrives in time, it plays the engine move. The wait never lets our clock go below 20s, and there is no
+    wait at all under 25s.
+- One `PILOT ply N: ENGINE/PILOT PICK/FORCED/VETO ...` line is logged per ply.
+
+At game end the bot writes `last_result.json`. Tests: `python3 client/test_pilot.py`.
+
 ## Post-mortem of real games
 
 ```bash
