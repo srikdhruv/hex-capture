@@ -8,8 +8,10 @@ struct Params {
   double beta = 0.5;      // weight of my 1-action capture threat at the leaf (I move next)
   double ordMy = 0.8;     // ordering: weight of my follow-up capture (mid-turn)
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
-  double expo = 0.0;      // static: penalty per exposed own star * opp stars
-  int maxK1 = 96, maxK2 = 32;
+  double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
+  double mob = 0.02;      // positional: frontier size difference
+  int third = 1;          // leaf: 1 = my full 2-action capture turn, 0 = 1-action capture
+  int maxK1 = 1024, maxK2 = 64;
   int openRand = 0;       // selfplay: randomize among top-N for first plies
   int openPlies = 0;
   void set(const std::string& kv) {
@@ -17,6 +19,7 @@ struct Params {
     std::string k = kv.substr(0, p); double v = atof(kv.c_str() + p + 1);
     if (k == "alpha") alpha = v; else if (k == "beta") beta = v; else if (k == "ordMy") ordMy = v;
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
+    else if (k == "mob") mob = v; else if (k == "third") third = (int)v;
     else if (k == "maxK1") maxK1 = (int)v; else if (k == "maxK2") maxK2 = (int)v;
     else if (k == "openRand") openRand = (int)v; else if (k == "openPlies") openPlies = (int)v;
     else fprintf(stderr, "unknown param %s\n", k.c_str());
@@ -30,6 +33,24 @@ inline double msSince(Clock::time_point t) { return std::chrono::duration<double
 inline double staticEval(const Game& g, int S, const Params& P) {
   int R = TOTAL_PLIES - g.ply;
   return (g.score[S] - g.score[1 - S]) + P.alpha * R * (g.stars[S] - g.stars[1 - S]);
+}
+
+// Positional tie-break terms from S's perspective.
+inline double positional(Game& g, int S, const Params& P) {
+  if (P.expo == 0 && P.mob == 0) return 0;
+  int expo[2] = {0, 0}, front[2] = {0, 0};
+  for (int r = g.minr - 1; r <= g.maxr + 1; r++) for (int q = g.minq - 1; q <= g.maxq + 1; q++) {
+    int i = IDX(q, r); uint8_t c = g.g[i];
+    if (!c) {
+      bool a0 = false, a1 = false;
+      for (int d = 0; d < 6; d++) { uint8_t c2 = g.g[i + ND[d]]; if (c2) { if (cseat(c2)) a1 = true; else a0 = true; } }
+      front[0] += a0; front[1] += a1;
+    } else if (ckind(c) == STAR) {
+      for (int d = 0; d < 6; d++) if (!g.g[i + ND[d]]) { expo[cseat(c)]++; break; }
+    }
+  }
+  int O = 1 - S;
+  return P.expo * (expo[O] * g.stars[S] - expo[S] * g.stars[O]) + P.mob * (front[S] - front[O]);
 }
 
 // Candidate placements for X near Y's stars (mode 0) or near Y stars / Y plains touching Y stars (mode 1).
@@ -180,7 +201,11 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
       if (rp.m1.type != 2) g.apply(rp.m1, a);
       if (rp.m2.type != 2) g.apply(rp.m2, b);
       v = staticEval(g, S, P);
-      if (g.ply < TOTAL_PLIES) v += P.beta * bestCap1(g, S);
+      if (g.ply < TOTAL_PLIES) {
+        if (P.third) { Reply mt = replySearch(g, S, movesLeftInTurn(g.ply), P); v += P.beta * (mt.val - v); }
+        else v += P.beta * bestCap1(g, S);
+        v += positional(g, S, P);
+      }
       if (rp.m2.type != 2) g.undo(b);
       if (rp.m1.type != 2) g.undo(a);
     }
@@ -190,11 +215,12 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   };
   std::vector<Combo> combos;
   std::set<std::pair<int, int>> have;
-  const int K1s[] = {4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256};
-  const int K2s[] = {4, 6, 8, 10, 12, 16, 20, 24, 32, 32, 32, 32};
+  const int K1s[] = {4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024};
+  const int K2s[] = {4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 64, 64, 64};
+  const int NST = 16;
   int stage = 0;
-  for (; stage < 12; stage++) {
-    if (msSince(t0) > budget * 0.5 && stage > 0) break;
+  for (; stage < NST; stage++) {
+    if (msSince(t0) > budget * 0.6 && stage > 0) break;
     int K1 = std::min({K1s[stage], n1, L >= 2 ? P.maxK1 : 100000});
     if (L < 2) K1 = std::min(n1, K1s[stage] * 4);
     std::vector<int> needSecond;
@@ -204,7 +230,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
     for (int i = 0; i < K1; i++) {
       if (L >= 2) {
         if (!secondReady[i]) continue;
-        int K2 = std::min<int>(K2s[stage], second[i].size());
+        int K2 = std::min<int>({K2s[stage], (int)second[i].size(), P.maxK2});
         if (second[i].empty() && !have.count({i, -1})) { have.insert({i, -1}); combos.push_back({i, -1}); }
         for (int j = 0; j < K2; j++) if (!have.count({i, j})) { have.insert({i, j}); combos.push_back({i, j}); }
       } else if (!have.count({i, -1})) { have.insert({i, -1}); combos.push_back({i, -1}); }
@@ -213,7 +239,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
     par(nn, [&](Game& g, int k) { leafEval(g, combos[startIdx + k]); });
     bool allDone = true; for (size_t k = startIdx; k < combos.size(); k++) if (!combos[k].done) allDone = false;
     if (!allDone) break;
-    if (K1 >= n1 && (L < 2 || K1s[stage] >= P.maxK1)) { stage++; break; }
+    if (K1 >= n1 && (L < 2 || K2s[stage] >= P.maxK2 || stage == NST - 1)) { stage++; break; }
   }
   // choose best
   int bi = -1;
@@ -272,6 +298,7 @@ inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const P
         if (r.move.empty() || !g.parseMove(r.move, m)) { g.ply++; continue; }
         Undo u; g.apply(m, u);
         moves += r.move + " ";
+        if (getenv("BP_SAVE_PLY") && g.ply == atoi(getenv("BP_SAVE_PLY")) && k == 0) fprintf(stderr, "STATE %s\n", g.stateJson().c_str());
       }
       int sa = g.score[aSeat], sb = g.score[1 - aSeat];
       std::lock_guard<std::mutex> lk(mu);
