@@ -80,6 +80,10 @@
     Don't let an enemy piece touch both shield plains at a corner. If one does, refill the hole next turn or erase their piece.
   - Compact 6-star forts leak 2 stars even to a 1-hex sniper. Fortlite, with its stars separated by walls, is the most leak-resistant layout tested.
 
+- **Lab #8:** sealing a 5th star inside #2, to free #3 up as a plain sniper, **lost 0–48** to Fortlite: with 5 stars packed together, every hole touches 2 stars.
+  **Never put a 5th or 6th star into #2.** Fortlite's 4 stars with walls between them is the sweet spot.
+  The last 5 plies hold only about 10% of the score: points come in steadily from ply 20 onward.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
