@@ -116,7 +116,9 @@ jobs:
           ls -la out
           echo "${GITHUB_SHA} $(date -u +%Y%m%dT%H%M%SZ)" > out/version.txt
           git tag -f latest "${GITHUB_SHA}"
-          git push -f origin latest
+          # Moving the tag can be refused when release.yml changed (GITHUB_TOKEN has no 'workflows' scope);
+          # clients only use the assets, version.txt and the sha in the notes, so this is not fatal.
+          git push -f origin latest || echo "::warning::could not move the 'latest' tag; assets are still updated"
           gh release view latest >/dev/null 2>&1 || gh release create latest --title "hexbot (latest)" \
             --notes "Rolling build of the Blueprints bot. See README: Play with one command."
           gh release upload latest out/* --clobber
