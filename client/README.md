@@ -4,6 +4,8 @@
 assigned board, and plays a move whenever it is our turn. It also plays standalone challenges and
 "Test your engine" self-test games.
 
+> **Engine label warning:** the first accepted engine move permanently tags your tournament entry as **Engine** for the whole tournament.
+
 ## 1. Get a token
 
 1. Log in at https://strategyjam.org, open your **profile**.
@@ -38,16 +40,14 @@ Useful options:
 |---|---|
 | `client/.venv/bin/python client/bot.py --dry-run` | Connects and computes moves but never POSTs (no check-in, no moves). |
 | `... bot.py --no-tournament` | Only standalone challenges / "Test your engine" games. |
-| `... bot.py --move-time-ms 6000` | Cap think time per action. |
+| `... bot.py --move-time-ms 6000` | Target think time per action (default 9000). |
+| `... bot.py --max-time-ms 4000` | Hard cap on think time per action, overrides everything. |
 | `ENGINE_CMD="node tools/greedy.mjs" ... bot.py` | Force a specific engine command. |
 | `python3 client/bot.py --selftest 20` | Offline: plays 20 plies locally through the full move pipeline. |
 | `client/.venv/bin/python client/test_offline.py` | Offline tests of the protocol handling (fake websocket). |
 
 Self-test game: on the Blueprints page, Play tab, click "Test your engine" while the bot runs
 (you are seat 0 in the browser, the engine is seat 1; unrated).
-
-Note: the first move the engine plays in the tournament tags our entry with the Engine label for the
-whole tournament.
 
 ## What it does
 
@@ -58,8 +58,11 @@ whole tournament.
   state after the first POST and the bot computes again. After a 409, a timeout or a lost response
   it re-watches the board (re-read), never replays.
 - Time: reads our remaining time from `state.clock` (raw shape logged once to stderr), thinks
-  `min(MOVE_TIME_MS, 0.45 * (remaining - 3s))`, hard-kills the engine past budget + 1.5s, and below
-  2.5s left plays instantly (cached PV move or any legal move). A clock-out means a pass.
+  `min(MOVE_TIME_MS, MAX_TIME_MS, 0.45 * (remaining - 3s))`, hard-kills the engine past budget + 1.5s.
+  Emergency mode: below 10s left it thinks at most 1000ms; below 2.5s it plays instantly (cached PV
+  move or any legal move). A clock-out means a pass.
+- Check-in runs in the background with retries while the window is open; each round's new board is
+  watched as soon as the tournament push says it is ready. Out-of-order (older ply) snapshots are ignored.
 - The engine's move is always checked against `view.moves`. Fallback chain: engine, then greedy,
   then the engine's `top` list, then the cached PV move, then a random legal move.
 
@@ -68,6 +71,16 @@ whole tournament.
 - `client/logs/bot-<session>.log`: the stderr log.
 - `client/logs/game-<room>.jsonl`: every pushed state, every decision (move, source, eval, pv, clock,
   budget) and every POST result. The token is never written.
+
+## A/B testing engines (arena)
+
+```bash
+engine/snapshot.sh            # copies engine/bp to engine/versions/bp-<shortsha> (gitignored); --build rebuilds first
+python3 tools/arena.py --a "engine/versions/bp-<sha> --time-ms 1000" --b "node tools/greedy.mjs" --games 32 --jobs 16
+```
+
+Color-swapped pairs from random openings, W/D/L, score % and Elo with 95% CI, mean score diff with
+95% CI, per-color breakdown, faults. `--out results.jsonl` keeps every game's moves.
 
 ## Pair-play helper (manual play)
 

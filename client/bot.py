@@ -11,7 +11,9 @@ Env:
   STRATEGYJAM_URL    (default https://strategyjam.org)
   TOURNAMENT_ID      (default f46b70969dee; set to "" or pass --no-tournament for challenges only)
   ENGINE_CMD         (default <repo>/engine/bp; falls back to node tools/greedy.mjs)
-  MOVE_TIME_MS       (default 9000: max think time per action)
+  MOVE_TIME_MS       (default 9000: target think time per action)
+  MAX_TIME_MS        (optional hard cap per action; same as --max-time-ms)
+Emergency mode: with < 10s on our clock, think at most 1000ms; with < 2.5s, move instantly.
 
 Usage:
   python3 client/bot.py [--dry-run] [--move-time-ms N] [--engine CMD] [--tournament ID | --no-tournament]
@@ -140,10 +142,18 @@ def my_clock_ms(state, seat):
     return ms
 
 
-def think_budget_ms(remaining_ms, cap_ms):
+EMERGENCY_CLOCK_MS = 10000  # below this remaining clock, think at most EMERGENCY_THINK_MS
+EMERGENCY_THINK_MS = 1000
+
+
+def think_budget_ms(remaining_ms, cap_ms, max_ms=None):
     """Time to give the engine for this action. Never risks a flag (timeout = pass)."""
+    if max_ms:
+        cap_ms = min(cap_ms, max_ms)
     if remaining_ms is None:
         return cap_ms
+    if remaining_ms < EMERGENCY_CLOCK_MS:  # emergency mode
+        return int(max(100, min(cap_ms, EMERGENCY_THINK_MS, remaining_ms - 3000)))
     usable = remaining_ms - 3000  # network + process startup + grace margin
     return int(max(100, min(cap_ms, usable * 0.45)))
 
@@ -174,9 +184,10 @@ def _run_policy(cmd, state, time_ms, hard_timeout_s):
 
 
 class Chooser:
-    def __init__(self, engine_spec, cap_ms):
+    def __init__(self, engine_spec, cap_ms, max_ms=None):
         self.cmd = _engine_cmd(engine_spec)
         self.cap_ms = cap_ms
+        self.max_ms = max_ms
         self.pv_cache = {}  # (room, ply) -> move predicted by the engine's PV for our next action
         self._warned = set()
 
@@ -194,8 +205,9 @@ class Chooser:
         legal = set(moves)
         ply = state.get("ply", view.get("ply"))
         remaining = my_clock_ms(state, seat)
-        budget = think_budget_ms(remaining, self.cap_ms)
-        info = {"ply": ply, "clock_ms": None if remaining is None else int(remaining), "budget_ms": budget}
+        budget = think_budget_ms(remaining, self.cap_ms, self.max_ms)
+        info = {"ply": ply, "clock_ms": None if remaining is None else int(remaining), "budget_ms": budget,
+                "emergency": remaining is not None and remaining < EMERGENCY_CLOCK_MS}
         cached = self.pv_cache.pop((room, ply), None)
         if cached not in legal:
             cached = None
@@ -344,6 +356,9 @@ class Bot:
             self.finished.add(room)
             log(f"[{room}] game over: result={json.dumps(view.get('result'))} scores={view.get('scores')} you={state.get('you')}")
         with self.lock:
+            old = self.latest.get(room)
+            if old is not None and (old.get("ply") or 0) > (state.get("ply") or 0) and not view.get("result"):
+                return  # stale snapshot delivered out of order; keep the newer one
             self.latest[room] = state
             ev = self.events.get(room)
             if ev is None:
@@ -408,7 +423,10 @@ class Bot:
         path = f"/api/engine/tournaments/{tid}" if tid else f"/api/engine/games/{room}"
         result = self.call(path + "/move", {"ply": ply, "move": move})
         jlog(room, {"type": "post", "ply": ply, "move": move, "ok": result is not None})
-        if result is None:
+        if result is not None:
+            with self.lock:
+                self.pending[room] = ply  # keep the guard even if a reconnect cleared it mid-move
+        else:
             with self.lock:
                 if self.pending.get(room) == ply:
                     self.pending.pop(room, None)
@@ -454,15 +472,14 @@ class Bot:
         jlog(f"tournament-{tid}", {"type": "tournament", "state": state})
         key = (tid, state.get("round"))
         if state.get("status") == "playing" and state.get("active") and not state.get("withdrawn"):
-            if not state.get("checkedIn") and key not in self.checked_in and (state.get("closesAt") or 0) > time.time() * 1000:
+            closes = state.get("closesAt")
+            window_open = closes is None or closes > time.time() * 1000
+            if not state.get("checkedIn") and key not in self.checked_in and window_open:
                 self.checked_in.add(key)
                 if self.dry_run:
                     log(f"[dry-run] would check in for round {key[1]}")
                 else:
-                    log(f"checking in for round {key[1]}")
-                    if self.call(f"/api/engine/tournaments/{tid}/check-in", {}) is None:
-                        self.checked_in.discard(key)
-                        self.send({"type": "watch-tournament", "tournament": tid})
+                    threading.Thread(target=self.check_in, args=(tid, key, closes), daemon=True).start()
             job = state.get("game")
             if job and job.get("ready") and job.get("room") and job.get("round") == state.get("round"):
                 with self.lock:
@@ -472,6 +489,20 @@ class Bot:
                     self.watch(job["room"], tid)
         elif state.get("status") and state.get("status") != "playing":
             log("tournament status:", state.get("status"))
+
+    def check_in(self, tid, key, closes):
+        """Check in for a round off the websocket thread; retry while the window is open, then re-read."""
+        for attempt in range(1, 7):
+            log(f"checking in for round {key[1]} (attempt {attempt})")
+            if self.call(f"/api/engine/tournaments/{tid}/check-in", {}) is not None:
+                log(f"checked in for round {key[1]}")
+                return
+            if self.stopped.is_set() or (closes is not None and closes - time.time() * 1000 < 3000):
+                break
+            if self.stopped.wait(min(5, 1.5 * attempt)):
+                return
+        self.checked_in.discard(key)
+        self.send({"type": "watch-tournament", "tournament": tid})  # re-read; a new push retries
 
     def on_open(self, ws):
         log("engine connected; waiting for pushed challenges/positions",
@@ -572,7 +603,10 @@ def selftest(chooser, plies):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="compute and log moves but never POST (no check-in, no moves)")
-    ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "9000")))
+    ap.add_argument("--move-time-ms", type=int, default=int(os.environ.get("MOVE_TIME_MS", "9000")),
+                    help="target think time per action (default 9000)")
+    ap.add_argument("--max-time-ms", type=int, default=int(os.environ.get("MAX_TIME_MS", "0")) or None,
+                    help="hard cap on think time per action, overrides everything else")
     ap.add_argument("--engine", default=os.environ.get("ENGINE_CMD"), help="engine command (default <repo>/engine/bp)")
     ap.add_argument("--tournament", default=os.environ.get("TOURNAMENT_ID", DEFAULT_TOURNAMENT))
     ap.add_argument("--no-tournament", action="store_true", help="only standalone challenges / self-test games")
@@ -580,9 +614,10 @@ def main():
                     help="offline: play PLIES plies locally through the move pipeline (no network)")
     args = ap.parse_args()
 
-    chooser = Chooser(args.engine, args.move_time_ms)
+    chooser = Chooser(args.engine, args.move_time_ms, args.max_time_ms)
     log(f"engine: {' '.join(chooser.cmd)} ({'found' if chooser.engine_available() else 'MISSING -> greedy fallback'}); "
-        f"max think {args.move_time_ms}ms")
+        f"think {args.move_time_ms}ms/action, hard cap {args.max_time_ms or '-'}ms, "
+        f"emergency {EMERGENCY_THINK_MS}ms below {EMERGENCY_CLOCK_MS // 1000}s")
     if args.selftest is not None:
         selftest(chooser, args.selftest)
         return
