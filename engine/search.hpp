@@ -13,6 +13,11 @@ struct Params {
   double hw = 0.3;        // hand potential: stars in best blueprint * future stamps
   int editThreat = 1;     // reply search includes edit + capture
   int incr = 1;           // incremental follow-up capture computation
+  int verify = 0;         // deep verification of top combos with a selective opponent turn
+  int vK1 = 10, vK2 = 6;  // opponent widths in verification
+  double widenFrac = 0.45;
+  double bookMargin = 40; // play the book move if its value is within this of the best
+  double buildBase = 0;   // reply baseline: unused actions build stars instead of passing
   int third = 1;          // leaf: 1 = my full 2-action capture turn, 0 = 1-action capture
   int maxK1 = 1024, maxK2 = 64;
   int openRand = 0;       // selfplay: randomize among top-N for first plies
@@ -24,6 +29,9 @@ struct Params {
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
     else if (k == "mob") mob = v; else if (k == "third") third = (int)v;
     else if (k == "hw") hw = v; else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
+    else if (k == "verify") verify = (int)v; else if (k == "vK1") vK1 = (int)v; else if (k == "vK2") vK2 = (int)v;
+    else if (k == "widenFrac") widenFrac = v; else if (k == "buildBase") buildBase = v;
+    else if (k == "bookMargin") bookMargin = v;
     else if (k == "maxK1") maxK1 = (int)v; else if (k == "maxK2") maxK2 = (int)v;
     else if (k == "openRand") openRand = (int)v; else if (k == "openPlies") openPlies = (int)v;
     else fprintf(stderr, "unknown param %s\n", k.c_str());
@@ -208,7 +216,7 @@ inline int bestCapAfter(Game& g, int X, const std::vector<CapC>& C0, const Undo&
   return bestN * g.stars[X];
 }
 
-struct Reply { double val; Move m1, m2; };
+struct Reply { double val, base = 0; Move m1, m2; };
 
 // Radius-4 hex disc as 61 bits around a centre cell.
 struct Disc4 {
@@ -349,7 +357,13 @@ inline void editCaptures(Game& g, int O, const Params& P, Reply& rep) {
 // Side O plays L actions (capture-oriented): breach/capture placement + capture, or edit + capture.
 inline Reply replySearch(Game& g, int O, int L, const Params& P) {
   Reply rep; rep.val = staticEval(g, O, P); rep.m1.type = 2; rep.m2.type = 2;
-  if (L <= 0 || g.ply >= TOTAL_PLIES) return rep;
+  if (L <= 0 || g.ply >= TOTAL_PLIES) { rep.base = rep.val; return rep; }
+  double bv = 0;
+  if (P.buildBase > 0) {
+    int bs = 0; for (int b = 0; b < 3; b++) bs = std::max(bs, g.hands[O].b[b].stars);
+    bv = P.buildBase * P.alpha * (TOTAL_PLIES - g.ply) * bs;
+  }
+  rep.val += bv * L; rep.base = rep.val;
   std::vector<Move> c1; attackCands(g, O, L >= 2 ? 1 : 0, c1);
   std::vector<CapC> C0; if (L >= 2) capList(g, O, C0);
   for (auto& m : c1) {
@@ -358,6 +372,7 @@ inline Reply replySearch(Game& g, int O, int L, const Params& P) {
     if (L >= 2 && g.ply < TOTAL_PLIES) {
       Move bm; int pts = P.incr ? bestCapAfter(g, O, C0, u, &bm) : bestCap1(g, O, &bm);
       if (pts > 0) { Undo u2; g.apply(bm, u2); v = staticEval(g, O, P); g.undo(u2); m2 = bm; }
+      else v += bv;
     }
     g.undo(u);
     if (v > rep.val) { rep.val = v; rep.m1 = m; rep.m2 = m2; }
@@ -366,12 +381,78 @@ inline Reply replySearch(Game& g, int O, int L, const Params& P) {
   return rep;
 }
 
+// Leaf value from S's perspective when S is to move: static + weighted own capture turn + positional.
+inline double leafS(Game& g, int S, const Params& P) {
+  double v = staticEval(g, S, P);
+  if (g.ply >= TOTAL_PLIES) return v;
+  if (P.third) { Reply mt = replySearch(g, S, movesLeftInTurn(g.ply), P); v += P.beta * (mt.val - mt.base); }
+  else v += P.beta * bestCap1(g, S);
+  return v + positional(g, S, P);
+}
+
+// Opponent (1-S) to move: selective search over their turn; returns min leafS value (S perspective).
+// Always includes the greedy capture line, so the result is <= the shallow leaf value.
+inline double deepOpp(Game& g, int S, const Params& P, int K1, int K2, const std::function<bool()>& stop, Move* bm1 = nullptr, Move* bm2 = nullptr) {
+  if (g.ply >= TOTAL_PLIES) return staticEval(g, S, P);
+  int O = 1 - S, LO = movesLeftInTurn(g.ply);
+  double best;
+  {
+    Reply rp = replySearch(g, O, LO, P);
+    Undo a, b;
+    if (rp.m1.type != 2) g.apply(rp.m1, a);
+    if (rp.m2.type != 2) g.apply(rp.m2, b);
+    best = leafS(g, S, P);
+    if (rp.m2.type != 2) g.undo(b);
+    if (rp.m1.type != 2) g.undo(a);
+    if (bm1) { *bm1 = rp.m1; *bm2 = rp.m2; }
+  }
+  std::vector<Move> A; g.genAll(A);
+  std::vector<CapC> C0; if (LO >= 2) capList(g, O, C0); else capList(g, S, C0);
+  std::vector<std::pair<double, int>> sc(A.size());
+  for (size_t k = 0; k < A.size(); k++) {
+    Undo u; g.apply(A[k], u);
+    double v = staticEval(g, O, P);
+    if (LO >= 2) v += P.ordMy * (A[k].type == 0 ? bestCapAfter(g, O, C0, u) : bestCap1(g, O));
+    else v -= P.ordOpp * bestCapAfter(g, S, C0, u);
+    g.undo(u); sc[k] = {v, (int)k};
+  }
+  std::partial_sort(sc.begin(), sc.begin() + std::min<size_t>(K1, sc.size()), sc.end(), [](auto& a, auto& b) { return a.first > b.first; });
+  for (int i = 0; i < K1 && i < (int)sc.size(); i++) {
+    if (stop()) break;
+    const Move& m1 = A[sc[i].second];
+    Undo u1; g.apply(m1, u1);
+    if (LO >= 2 && g.ply < TOTAL_PLIES) {
+      std::vector<Move> B; g.genAll(B);
+      std::vector<CapC> CS; capList(g, S, CS);
+      std::vector<std::pair<double, int>> s2(B.size());
+      for (size_t k = 0; k < B.size(); k++) {
+        Undo u2; g.apply(B[k], u2);
+        s2[k] = {staticEval(g, O, P) - P.ordOpp * bestCapAfter(g, S, CS, u2), (int)k};
+        g.undo(u2);
+      }
+      std::partial_sort(s2.begin(), s2.begin() + std::min<size_t>(K2, s2.size()), s2.end(), [](auto& a, auto& b) { return a.first > b.first; });
+      for (int j = 0; j < K2 && j < (int)s2.size(); j++) {
+        Undo u2; g.apply(B[s2[j].second], u2);
+        double v = leafS(g, S, P);
+        g.undo(u2);
+        if (v < best) { best = v; if (bm1) { *bm1 = m1; *bm2 = B[s2[j].second]; } }
+      }
+    } else {
+      double v = leafS(g, S, P);
+      if (v < best) { best = v; if (bm1) { *bm1 = m1; bm2->type = 2; } }
+    }
+    g.undo(u1);
+  }
+  return best;
+}
+
 struct SearchResult { std::string move, json; double eval = 0; };
 
-struct Combo { int i, j; double val = -1e18; bool done = false; Move r1, r2; };
+struct Combo { int i, j; double val = -1e18; bool done = false; Move r1, r2; double deep = -1e18; bool verified = false; };
 
 inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params& P,
-                               const std::vector<std::string>& allowed, bool verbose, std::mt19937_64* rng = nullptr) {
+                               const std::vector<std::string>& allowed, bool verbose, std::mt19937_64* rng = nullptr,
+                               const std::string& bookMove = "") {
   auto t0 = Clock::now();
   double budget = std::max(50.0, timeMs * 0.92 - 30);
   SearchResult res;
@@ -406,6 +487,12 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   });
   std::vector<int> ord(n1); std::iota(ord.begin(), ord.end(), 0);
   std::stable_sort(ord.begin(), ord.end(), [&](int a, int b) { return ov[a] > ov[b]; });
+  bool haveBook = false;
+  if (!bookMove.empty()) {
+    for (int k = 0; k < n1; k++) if (root.moveStr(A[ord[k]]) == bookMove) {
+      int x = ord[k]; ord.erase(ord.begin() + k); ord.insert(ord.begin(), x); haveBook = true; break;
+    }
+  }
   // Second-action lists (lazy)
   std::vector<std::vector<Move>> second(n1);
   std::vector<char> secondReady(n1, 0);
@@ -437,12 +524,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
       Undo a, b;
       if (rp.m1.type != 2) g.apply(rp.m1, a);
       if (rp.m2.type != 2) g.apply(rp.m2, b);
-      v = staticEval(g, S, P);
-      if (g.ply < TOTAL_PLIES) {
-        if (P.third) { Reply mt = replySearch(g, S, movesLeftInTurn(g.ply), P); v += P.beta * (mt.val - v); }
-        else v += P.beta * bestCap1(g, S);
-        v += positional(g, S, P);
-      }
+      v = leafS(g, S, P);
       if (rp.m2.type != 2) g.undo(b);
       if (rp.m1.type != 2) g.undo(a);
     }
@@ -457,7 +539,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   const int NST = 16;
   int stage = 0;
   for (; stage < NST; stage++) {
-    if (msSince(t0) > budget * 0.6 && stage > 0) break;
+    if (msSince(t0) > budget * (P.verify ? P.widenFrac : 0.6) && stage > 0) break;
     int K1 = std::min({K1s[stage], n1, L >= 2 ? P.maxK1 : 100000});
     if (L < 2) K1 = std::min(n1, K1s[stage] * 4);
     std::vector<int> needSecond;
@@ -482,12 +564,49 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   int bi = -1;
   std::vector<int> doneIdx; for (size_t k = 0; k < combos.size(); k++) if (combos[k].done) doneIdx.push_back(k);
   std::sort(doneIdx.begin(), doneIdx.end(), [&](int a, int b) { return combos[a].val > combos[b].val; });
+  int nVer = 0;
+  if (P.verify && !doneIdx.empty() && root.ply + L < TOTAL_PLIES) {
+    std::mutex vm; double bestDeep = -1e18;
+    auto stopFn = [&]() { return msSince(t0) > budget; };
+    int nd = doneIdx.size();
+    par(nd, [&](Game& g, int k) {
+      Combo& c = combos[doneIdx[k]];
+      { std::lock_guard<std::mutex> lk(vm); if (c.val <= bestDeep) return; }
+      Undo u1, u2; bool two = (L >= 2 && c.j >= 0);
+      g.apply(A[ord[c.i]], u1);
+      if (two) g.apply(second[c.i][c.j], u2);
+      Move r1, r2; r1.type = r2.type = 2;
+      double v = deepOpp(g, S, P, P.vK1, P.vK2, stopFn, &r1, &r2);
+      if (two) g.undo(u2);
+      g.undo(u1);
+      if (stopFn()) return;  // incomplete: discard
+      std::lock_guard<std::mutex> lk(vm);
+      c.deep = v; c.verified = true; c.r1 = r1; c.r2 = r2; nVer++;
+      if (v > bestDeep) bestDeep = v;
+    });
+    std::vector<int> ver; for (int k : doneIdx) if (combos[k].verified) ver.push_back(k);
+    if (!ver.empty()) {
+      // verified combos ranked by deep value first, then the rest by shallow value
+      std::stable_sort(ver.begin(), ver.end(), [&](int a, int b) { return combos[a].deep > combos[b].deep; });
+      for (int k : ver) combos[k].val = combos[k].deep;
+      std::vector<int> rest; for (int k : doneIdx) if (!combos[k].verified) rest.push_back(k);
+      doneIdx = ver; doneIdx.insert(doneIdx.end(), rest.begin(), rest.end());
+    }
+  }
   if (doneIdx.empty()) {
     // no leaf finished: fall back to ordering
     Combo c; c.i = 0; c.j = -1; c.val = ov[ord[0]]; combos.push_back(c); doneIdx.push_back(combos.size() - 1);
   }
   bi = doneIdx[0];
-  if (rng && root.ply < P.openPlies && P.openRand > 1) {
+  bool bookPlayed = false;
+  if (haveBook) {
+    for (int k : doneIdx) if (combos[k].i == 0) {
+      if (combos[k].val >= combos[bi].val - P.bookMargin) { bi = k; bookPlayed = true; }
+      break;
+    }
+    if (verbose) fprintf(stderr, "book %s %s\n", bookMove.c_str(), bookPlayed ? "played" : "overridden");
+  }
+  if (!bookPlayed && rng && root.ply < P.openPlies && P.openRand > 1) {
     // pick among top distinct first actions
     std::vector<int> firsts; std::set<int> seenI;
     for (int k : doneIdx) if (seenI.insert(combos[k].i).second) { firsts.push_back(k); if ((int)firsts.size() >= P.openRand) break; }
@@ -509,8 +628,8 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   }
   char eb[64]; snprintf(eb, sizeof eb, "%.2f", res.eval);
   res.json = "{\"move\":" + jesc(res.move) + ",\"eval\":" + eb + ",\"pv\":[" + pv + "],\"top\":[" + top + "],\"nodes\":" + std::to_string(nodes.load()) + "}";
-  if (verbose) fprintf(stderr, "ply %d side %d L %d moves %d leaves %zu stage %d time %.0fms eval %.2f\n",
-                       root.ply, S, L, n1, doneIdx.size(), stage, msSince(t0), res.eval);
+  if (verbose) fprintf(stderr, "ply %d side %d L %d moves %d leaves %zu stage %d verified %d time %.0fms eval %.2f\n",
+                       root.ply, S, L, n1, doneIdx.size(), stage, nVer, msSince(t0), res.eval);
   return res;
 }
 
