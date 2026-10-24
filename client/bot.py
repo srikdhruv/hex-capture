@@ -308,7 +308,7 @@ class Chooser:
 class Bot:
     def __init__(self, base, token, tournament, chooser, dry_run=False, advise=False):
         self.base = base
-        self.headers = {"Authorization": "Bearer " + token}
+        self.headers = {"Authorization": "Bearer " + token, "User-Agent": "hexbot/1.0 (+https://github.com/srikdhruv/hex-capture)"}  # default Python-urllib UA is blocked by Cloudflare (error 1010)
         for variable, header in [("CF_ACCESS_CLIENT_ID", "CF-Access-Client-Id"),
                                  ("CF_ACCESS_CLIENT_SECRET", "CF-Access-Client-Secret")]:
             if os.environ.get(variable):
