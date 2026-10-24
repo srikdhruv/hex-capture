@@ -60,3 +60,15 @@ R11 (WON 3140-595 as Blue vs ctd, resigned ~ply 113; engine e9eef9d, pilot daemo
   break a better 2-action plan). Prefer applying it only when the engine move itself captures nothing.
 - Daemon switch: tools/pilot_daemon.py (rules.json, lock file) replaced the scratch autopick; restart it between games only.
   Approach rule: client A/B says negative vs turtle-book (10-6 vs 13-3) -> keep off unless R8-style far unsealed turtle.
+
+PILOT-LESS DEFAULTS (set 11:46 before R12; credits may stop the pilot at any time; tools/keepalive.sh restarts bot + daemon):
+- client/pilot/rules.json: protect_from 20 on #2/#3; take_capture_min 50 (a060f4c: only when the engine move captures less);
+  when-rule from ply 108: any capture over building. star_safe_dist stays null by default: it also blocks breach stamps
+  (0-pt stamps next to the enemy), and the R11 postmortem rated the radius-7 far-build overrides -125..-186 eval each.
+  Turn it on by hand (radius 5) only when the enemy multiplier is > 12 AND they hold a long probe (span >= 5).
+- client/pilot/control.json: engine_args "" (0de5e44 defaults: bookYield 2, approachW 5, noEditPly 28), prefer_wait_ms 3000.
+- Knob guide if a pilot is back: rusher -> --nobook once the book has yielded; Fortlite mirror -> --p bookYield=1;
+  www sealer (stars edited OUT of #2 into #1/#3 by ply 10, per scout: ranks 1,2,4,7,9,11 all do it, sealed by ply 32-72) ->
+  crack the front inner flower before ply 45, never feed exposed stars, take every capture (top margins are 36-31, 58-13).
+- Daemon restart (between games only): kill the pilot_daemon.py pid, wait for client/pilot/pilot_daemon.lock to vanish,
+  then `setsid nohup python3 -u tools/pilot_daemon.py --dir client/pilot &`. Only one pick writer at a time.
