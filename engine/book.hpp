@@ -89,7 +89,7 @@ std::string bookNext(const Book& B, const Game& g) {
     if (match >= 0 && match < (int)seq.size()) {
       Move m; if (parseEdit(seq[match], m) && isLegal(m)) return seq[match];
     }
-    if (match == (int)seq.size()) return "";
+    if (match == (int)seq.size() && !B.hasTarget[seat]) return "";
   }
   if (B.hasTarget[seat]) {
     int d0 = handDist(cur, B.target[seat]);
