@@ -45,3 +45,20 @@ Pilot: the autopick daemon picked the engine move on every ply (notes "R9 attack
 Lessons: second straight www-sniper opponent. Our star spam is just prey for an immune sniper; the opponent's late star growth multiplies
   every snipe. Need: don't place stars within reach of their wall pieces (or wall our star edges), build our own www sniper, and
   grow our multiplier late, not early.
+
+== R10 | we Red | vs wernerolaf | WON 5613-1403 | final stars us 96 / them 31 | engine bp-14f47c5 (postmortem with e9eef9d), pilot bookMargin=10 from ~ply 17
+room 858223c7655d6f88af1db6f21ad93126a15ab6af0d03d5c3249b0e8dca4bdbb7
+Opponent strategy: STAR RUSHER, no snipers, no Fortlite. 60 actions: 26 edits, 34 stamps. From ply 0 it stamps #2 (a 9-cell, 6-star piece:
+  0,0=* 0,1=w 1,1=* -1,2=* 0,2=* 1,2=w -1,3=w 0,3=* -2,4=*) straight at our start flowers: 0:2@-6,-4 3:2@-9,2 4:2@1,-3 8:2@4,-4 11:2@7,-4 12:2@10,-4
+  16:2@7,0 19:2@5,5 20:2@7,6. It reached 44 stars by ply 20 (89 by ply 50), with stars open and unwalled. Late game it made pointless edit
+  loops (2:-7,6>2:-7,5 and back, plies 87-107).
+Our play: book edits plies 1-14 while it ate our #1/#3 flowers: 0-112 at ply 16, 2 stars vs 39. The pilot set bookMargin=10 at ~ply 17,
+  after which the engine stamped and sniped its ~60 open stars. We led from ~ply 46 and won big. The postmortem flags missed captures that
+  the long search also skips (deliberately farming the multiplier): ply 105 1@6,-9 172, ply 101 1@9,-5 252, etc.
+Biggest swings:
+  1. ply 106 Red 1@2,9 eats 4 stars: +344 (us). Also ply 98 +324, ply 102 +255, ply 78 +236.
+  2. ply 40 Blue 1@13,-1 eats 11,0 13,-2: +142 (them). Also ply 16 2@7,0 eats start stars 6,0 9,1: +66.
+  3. Early book phase plies 5-14: the long search wanted stamps (2@3,1 / 2@7,-5 / 2@13,-4), eval loss 57-84 each; book edits cost ~112 pts.
+Pilot: bookMargin=10 from ~ply 17; otherwise picks were the engine's (old pilot, autopick daemon).
+Lessons: vs rushers, abandon the book early (e9eef9d bookYield does this now). Open star rushers are farmable: the multiplier race favours us
+  once we stamp.
