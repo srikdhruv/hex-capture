@@ -1,0 +1,81 @@
+# Blueprints tournament client
+
+`client/bot.py` connects to StrategyJam, checks in every round of the tournament, watches the
+assigned board, and plays a move whenever it is our turn. It also plays standalone challenges and
+"Test your engine" self-test games.
+
+## 1. Get a token
+
+1. Log in at https://strategyjam.org, open your **profile**.
+2. Under supported games, select **Blueprints**, then click **Connect engine**.
+3. Copy the token. It is shown **once** and expires after **24h**. Don't paste it anywhere public.
+
+## 2. Install (once)
+
+```bash
+cd ~/hex-capture
+python3 -m venv client/.venv
+client/.venv/bin/pip install -r client/requirements.txt
+```
+
+You also need `node` (v18+) for the fallback policy and tools.
+
+## 3. Run
+
+```bash
+cd ~/hex-capture
+export STRATEGYJAM_TOKEN='paste-token-here'   # never logged by the bot
+client/.venv/bin/python client/bot.py
+```
+
+Defaults: `STRATEGYJAM_URL=https://strategyjam.org`, `TOURNAMENT_ID=f46b70969dee`,
+engine `engine/bp` (falls back to `node tools/greedy.mjs` if the engine is missing or fails),
+`MOVE_TIME_MS=9000` (max think time per action).
+
+Useful options:
+
+| Command | What it does |
+|---|---|
+| `client/.venv/bin/python client/bot.py --dry-run` | Connects and computes moves but never POSTs (no check-in, no moves). |
+| `... bot.py --no-tournament` | Only standalone challenges / "Test your engine" games. |
+| `... bot.py --move-time-ms 6000` | Cap think time per action. |
+| `ENGINE_CMD="node tools/greedy.mjs" ... bot.py` | Force a specific engine command. |
+| `python3 client/bot.py --selftest 20` | Offline: plays 20 plies locally through the full move pipeline. |
+| `client/.venv/bin/python client/test_offline.py` | Offline tests of the protocol handling (fake websocket). |
+
+Self-test game: on the Blueprints page, Play tab, click "Test your engine" while the bot runs
+(you are seat 0 in the browser, the engine is seat 1; unrated).
+
+Note: the first move the engine plays in the tournament tags our entry with the Engine label for the
+whole tournament.
+
+## What it does
+
+- One websocket (`/api/engine/ws`), app ping every 25s, reconnects with backoff if no pong in 45s.
+  Stops for good on close codes 4001/4003/4004 and on HTTP 401/403 (renew the token and restart).
+- Auto check-in on every round while the check-in window is open, then `watch-game` on our board.
+- Each action is one POST `{"ply", "move"}`. With two actions in a turn, the server pushes a new
+  state after the first POST and the bot computes again. After a 409, a timeout or a lost response
+  it re-watches the board (re-read), never replays.
+- Time: reads our remaining time from `state.clock` (raw shape logged once to stderr), thinks
+  `min(MOVE_TIME_MS, 0.45 * (remaining - 3s))`, hard-kills the engine past budget + 1.5s, and below
+  2.5s left plays instantly (cached PV move or any legal move). A clock-out means a pass.
+- The engine's move is always checked against `view.moves`. Fallback chain: engine, then greedy,
+  then the engine's `top` list, then the cached PV move, then a random legal move.
+
+## Logs
+
+- `client/logs/bot-<session>.log`: the stderr log.
+- `client/logs/game-<room>.jsonl`: every pushed state, every decision (move, source, eval, pv, clock,
+  budget) and every POST result. The token is never written.
+
+## Pair-play helper (manual play)
+
+```bash
+python3 tools/suggest.py --moves "2@-3,-3 2@9,-3 2@7,1"   # replay from setup
+python3 tools/suggest.py state.json                       # server state / view JSON
+python3 tools/suggest.py client/logs/game-<room>.jsonl    # latest state in a game log
+```
+
+It prints the board, scores, stars, whose turn it is and actions left, both hands, the top engine
+suggestions with their capture/points, and the danger list (our stars the opponent can capture next).
