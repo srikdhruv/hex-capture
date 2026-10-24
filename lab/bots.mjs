@@ -161,7 +161,7 @@ export function chooseTurn(g, P) {
     g.undo(u);
   }
   first.sort((x, y) => y[0] - x[0]);
-  let seqs = [];
+  let seqs = [], domExtra = [];
   if (n === 1) seqs = first.slice(0, P.final).map(([v, b, a]) => [v, [[b, a]]]);
   else {
     const top = first.slice(0, P.beam);
@@ -190,14 +190,27 @@ export function chooseTurn(g, P) {
     seqs.sort((x, y) => y[0] - x[0]);
     // dedupe identical end positions approx by value+set
     seqs = seqs.slice(0, P.final * 3);
+    if (P.domino != null && g.hands[s][P.domino].offs.length) {
+      // edit-orient the small piece (action 1) then place it (action 2)
+      const d = P.domino, ds = [];
+      const eds = g.editMoves(s).filter((e) => e.startsWith(`${d + 1}:`) && e.split('>')[1].startsWith(`${d + 1}:`));
+      for (const e of eds) {
+        const ue = g.edit(e); const pd = g.placements(s, d);
+        for (let j = 0; j < pd.length; j += 2) { const u2 = g.place(pd[j], pd[j + 1]); ds.push([staticEval(g, s, P), [['E', e], [pd[j], pd[j + 1]]]]); g.undo(u2); }
+        g.undo(ue);
+      }
+      ds.sort((x, y) => y[0] - x[0]);
+      // keep a few domino lines by eval plus the ones that most reduce enemy capture threat (scored in final stage)
+      domExtra = ds.slice(0, P.domK || 4);
+    }
   }
   // threat check: opponent best capture after our turn
   let best = null, bestV = -Infinity;
-  const cands = seqs.slice(0, P.final);
+  const cands = seqs.slice(0, P.final).concat(domExtra);
   cands.sort((x, y) => y[0] - x[0]);
   for (const [v, mv] of cands) {
     if (v <= bestV) break; // threat penalty is >= 0, cannot beat current best
-    const us = mv.map(([b, a]) => g.place(b, a));
+    const us = mv.map(([b, a]) => (b === 'E' ? g.edit(a) : g.place(b, a)));
     let val = v;
     if (P.wThreat && g.ply < TOTAL) {
       const o = 1 - s;
@@ -209,7 +222,7 @@ export function chooseTurn(g, P) {
     for (let i = us.length - 1; i >= 0; i--) g.undo(us[i]);
     if (val > bestV) { bestV = val; best = mv; }
   }
-  return best.map(([b, a]) => ({ b, a }));
+  return best.map(([b, a]) => (b === 'E' ? { edit: a } : { b, a }));
 }
 
 export function playGame(botA, botB, { log = false, maxPly = TOTAL, start = null } = {}) {

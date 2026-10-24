@@ -1,0 +1,4 @@
+[{"name":"fortlite","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"domA (#1 ww-plain domino, ** sniper)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_domA","red_domA"],"domino":0},
+ {"name":"domB (#1 plain domino, star in #2 corner)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_domB","red_domB"],"domino":0},
+ {"name":"eris","wStar":0.5,"wThreat":1,"noise":0.5,"design":"eris0","starFreeUntil":120,"wSeal":1}]

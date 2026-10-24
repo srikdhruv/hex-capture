@@ -1,0 +1,3 @@
+[{"name":"eris","wStar":0.5,"wThreat":1,"noise":0.5,"design":"eris0","starFreeUntil":120,"wSeal":1},
+ {"name":"engine default","module":"./enginebot.mjs","timeMs":500},
+ {"name":"engine +fortlite book","module":"./enginebot.mjs","timeMs":500,"extraArgs":["--book","/home/srikd/hex-capture/engine/books/fortlite.json"]}]

@@ -71,3 +71,9 @@ PLANS.blue_none = { moves: [] }; PLANS.red_none = { moves: [] };
 PLANS.blue_fortWWW = runPlan(0, [...PLANS.blue_fort.steps, [1, [1, 0], 2, [1, 0]], [1, [0, -1], 2, [2, 0]], [1, [-1, 1], 2, [3, 0]], [2, [0, 0], 0, [1, 0]]]);
 PLANS.red_fortWWW = runPlan(1, [...PLANS.red_fort.steps, [1, [1, -1], 2, [1, 0]], [1, [-1, 0], 2, [2, 0]], [1, [0, 1], 2, [3, 0]], [2, [0, 0], 0, [1, 0]]]);
 if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_fortWWW', 'red_fortWWW']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
+// Domino variants: Fortlite + 2 edits making #1 a 2-PLAIN domino ((-1,1),(0,1) remain).
+PLANS.blue_domA = runPlan(0, [...PLANS.blue_fort.steps, [0, [0, 0], 2, [1, 0]], [0, [-1, 0], 1, [2, 0]]]);   // star -> #3 ('**'), plain -> #2 rim corner
+PLANS.red_domA = runPlan(1, [...PLANS.red_fort.steps, [0, [0, 0], 2, [1, 0]], [0, [-1, 0], 1, [-2, 0]]]);
+PLANS.blue_domB = runPlan(0, [...PLANS.blue_fort.steps, [0, [0, 0], 1, [2, 0]], [0, [-1, 0], 1, [0, -2]]]);   // star -> #2 rim corner, plain -> another corner
+PLANS.red_domB = runPlan(1, [...PLANS.red_fort.steps, [0, [0, 0], 1, [-2, 0]], [0, [-1, 0], 1, [0, 2]]]);
+if (process.argv[1] && process.argv[1].endsWith('d1plan.mjs')) for (const n of ['blue_domA', 'red_domA', 'blue_domB']) { const p = PLANS[n]; console.log(`== ${n} (${p.moves.length} edits): ${p.moves.join(' ')}`); p.hand.forEach((b, i) => console.log(`#${i + 1}:\n${draw(b)}`)); }
