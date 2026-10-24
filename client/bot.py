@@ -814,7 +814,7 @@ def bpcli(req):
     return json.loads(out.stdout)
 
 
-def selftest(chooser, plies):
+def selftest(chooser, plies, show_advice=False):
     """Play `plies` plies locally (both seats) through Chooser with a simulated server state + clock."""
     moves, clock = [], [60000, 60000]
     game = bprules.setup()
@@ -832,6 +832,9 @@ def selftest(chooser, plies):
         clock[seat] = clock[seat] - used + 15000
         assert move in view["moves"], move
         jlog("selftest", {"type": "decision", "ply": view["ply"], "move": move, **info})
+        if show_advice:
+            import advise
+            print(advise.render(view, seat, dict(info, move=move), header=f"== selftest advice ply {view['ply']} =="), flush=True)
         log(f"ply {view['ply']:3d} seat {seat} -> {move:14s} via {info.get('source'):8s} eval={info.get('eval')} "
             f"used={used}ms clock={clock[seat]}ms scores={view['scores']} stars={view['stars']}")
         moves.append(move)
@@ -969,7 +972,7 @@ def main():
         f"think {args.move_time_ms}ms/action, hard cap {args.max_time_ms or '-'}ms, "
         f"emergency {EMERGENCY_THINK_MS}ms below {EMERGENCY_CLOCK_MS // 1000}s")
     if args.selftest is not None:
-        selftest(chooser, args.selftest)
+        selftest(chooser, args.selftest, show_advice=args.advise)
         return
 
     base = os.environ.get("STRATEGYJAM_URL", "https://strategyjam.org").rstrip("/")

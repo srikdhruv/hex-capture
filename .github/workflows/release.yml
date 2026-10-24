@@ -87,6 +87,8 @@ jobs:
           EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
           "./dist/${{ matrix.asset }}${EXE}" --selftest 3 --move-time-ms 300 2>&1 | tee smoke.txt
           grep -q "via engine" smoke.txt
+          "./dist/${{ matrix.asset }}${EXE}" --selftest 2 --advise --move-time-ms 300 2>&1 | tee advise.txt
+          grep -q "Top moves" advise.txt
           test "$("./dist/${{ matrix.asset }}${EXE}" --version | tr -d '\r')" = "${GITHUB_SHA}"
 
       - uses: actions/upload-artifact@v4
