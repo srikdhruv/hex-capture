@@ -171,7 +171,8 @@ within `bookMargin` of the best, unless `bookYield` says otherwise:
 | approachW=5 vs e9eef9d (1s) | 16-8, Elo +120 |
 | 0de5e44 vs replicas eris / aryan / rusher (8 g each) | 6-2 / 8-0 / 8-0 |
 | 6000ms vs 1000ms (16 g) | 9-7 |
-| final arena (HEAD, sealer, replicas) | see lab/FINAL_ARENA.txt |
+| final, 16 g each @1s: engine vs sealer.py / eris / aryan / rusher | 15-1 / 15-1 / 16-0 / 16-0 |
+| final: sealer.py vs eris / aryan / rusher | 0-16 / 8-8 / 15-1 (details: lab/FINAL_ARENA.txt) |
 
 ## 8. Known weaknesses
 

@@ -1,0 +1,66 @@
+FINAL ARENA (2026-10-24 13:23), tools/arena.py, 16 games each (color-swapped pairs, 2 random opening plies), 1000 ms/move, 8 jobs, 1 thread per engine.
+Engine = engine/bp built from engine code at 491613a (unchanged at HEAD), defaults (Fortlite book, bookYield=2, approachW=5). Sealer = python3 tools/bots/sealer.py. Replicas = node engine/replica.mjs --bot eris|aryan|rusher (legal lab plans + lab chooseTurn).
+
+== eng_sealer
+A = engine/versions/bp-HEAD --threads 1
+B = python3 tools/bots/sealer.py
+games 16:  A W/D/L = 15/0/1   score 93.8% +- 15.4%  (Elo +470, 95% CI +223..+1200)
+mean score diff (A-B): +1481.3 +- 526.4 (95% CI)
+  A as Blue: 7/0/1  diff +1022.2 +- 908.8
+  A as Red: 8/0/0  diff +1940.4 +- 361.1
+faults A 0, B 0;  avg think per game A 49.7s, B 7.0s
+
+== eng_eris
+A = engine/versions/bp-HEAD --threads 1
+B = node engine/replica.mjs --bot eris
+games 16:  A W/D/L = 15/0/1   score 93.8% +- 15.4%  (Elo +470, 95% CI +223..+1200)
+mean score diff (A-B): +225.9 +- 78.7 (95% CI)
+  A as Blue: 7/0/1  diff +151.4 +- 126.7
+  A as Red: 8/0/0  diff +300.5 +- 66.0
+faults A 0, B 0;  avg think per game A 50.0s, B 72.6s
+
+== eng_aryan
+A = engine/versions/bp-HEAD --threads 1
+B = node engine/replica.mjs --bot aryan
+games 16:  A W/D/L = 16/0/0   score 100.0% +- 11.2%  (Elo +1200, 95% CI +359..+1200)
+mean score diff (A-B): +3034.6 +- 878.3 (95% CI)
+  A as Blue: 8/0/0  diff +1672.1 +- 409.9
+  A as Red: 8/0/0  diff +4397.1 +- 1049.0
+faults A 0, B 0;  avg think per game A 50.1s, B 60.8s
+
+== eng_rusher
+A = engine/versions/bp-HEAD --threads 1
+B = node engine/replica.mjs --bot rusher
+games 16:  A W/D/L = 16/0/0   score 100.0% +- 11.2%  (Elo +1200, 95% CI +359..+1200)
+mean score diff (A-B): +5105.5 +- 850.0 (95% CI)
+  A as Blue: 8/0/0  diff +4873.8 +- 1236.9
+  A as Red: 8/0/0  diff +5337.2 +- 1227.9
+faults A 0, B 0;  avg think per game A 50.2s, B 54.4s
+
+== sealer_eris
+A = python3 tools/bots/sealer.py
+B = node engine/replica.mjs --bot eris
+games 16:  A W/D/L = 0/0/16   score 0.0% +- 11.2%  (Elo -1200, 95% CI -1200..-359)
+mean score diff (A-B): -222.2 +- 42.4 (95% CI)
+  A as Blue: 0/0/8  diff -147.6 +- 30.9
+  A as Red: 0/0/8  diff -296.9 +- 25.3
+faults A 0, B 0;  avg think per game A 7.2s, B 72.6s
+
+== sealer_aryan
+A = python3 tools/bots/sealer.py
+B = node engine/replica.mjs --bot aryan
+games 16:  A W/D/L = 8/0/8   score 50.0% +- 25.3%  (Elo -0, 95% CI -194..+194)
+mean score diff (A-B): +60.1 +- 229.6 (95% CI)
+  A as Blue: 0/0/8  diff -381.0 +- 61.5
+  A as Red: 8/0/0  diff +501.2 +- 92.2
+faults A 0, B 0;  avg think per game A 7.5s, B 53.2s
+
+== sealer_rusher
+A = python3 tools/bots/sealer.py
+B = node engine/replica.mjs --bot rusher
+games 16:  A W/D/L = 15/0/1   score 93.8% +- 15.4%  (Elo +470, 95% CI +223..+1200)
+mean score diff (A-B): +1175.6 +- 357.9 (95% CI)
+  A as Blue: 7/0/1  diff +1077.5 +- 658.0
+  A as Red: 8/0/0  diff +1273.8 +- 324.6
+faults A 0, B 0;  avg think per game A 8.7s, B 56.3s
+
