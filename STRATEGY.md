@@ -60,6 +60,16 @@
 - **Idea being tested: use a PLAIN sniper.** It still captures, but when they erase it they score 0.
   It costs 2 extra edits after Fortlite: move #3's star into #1, then move a plain from #1 into #3.
 
+- **Lab #6 round robin (320 games, bots that erase then snipe):**
+  - Fortlite went **128–0**, beating every other design 32–0.
+  - Fort18 (6 sealed stars, 13 edits) went 87–40. Hex19 went 45–82. No edits went 0–128.
+  - **Past Fortlite, more edits or more stars LOSE.**
+  - Switching to star-free attacks after ply 70 did worse (58–68).
+- **Lab and engine disagree on what to do with free actions in the middlegame:**
+  - Lab bots say to stamp sealed #2s.
+  - Engine-vs-engine says sniping beats building once the loop starts.
+  - **Against strong opponents, follow the engine.** Snipe whenever a capture is on the board; stamp #2 only on actions with no capture available.
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
