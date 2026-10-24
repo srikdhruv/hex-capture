@@ -10,13 +10,14 @@ struct Params {
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
   double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
   double mob = 0.02;      // positional: frontier size difference
-  double hw = 0.3;        // hand potential: stars in best blueprint * future stamps
+  double hcov = 0;        // hand: covered star-neighbour count of best star blueprint (shield value)
+  double hw = 0.0;        // hand potential: stars in best blueprint * future stamps
   int editThreat = 1;     // reply search includes edit + capture
   int incr = 1;           // incremental follow-up capture computation
   int verify = 0;         // deep verification of top combos with a selective opponent turn
   int vK1 = 10, vK2 = 6;  // opponent widths in verification
   double widenFrac = 0.45;
-  double bookMargin = 40; // play the book move if its value is within this of the best
+  double bookMargin = 100; // play the book move if its value is within this of the best
   double buildBase = 0;   // reply baseline: unused actions build stars instead of passing
   int third = 1;          // leaf: 1 = my full 2-action capture turn, 0 = 1-action capture
   int maxK1 = 1024, maxK2 = 64;
@@ -28,7 +29,7 @@ struct Params {
     if (k == "alpha") alpha = v; else if (k == "beta") beta = v; else if (k == "ordMy") ordMy = v;
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
     else if (k == "mob") mob = v; else if (k == "third") third = (int)v;
-    else if (k == "hw") hw = v; else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
+    else if (k == "hw") hw = v; else if (k == "hcov") { hcov = v; if (v != 0) g_needCover = true; } else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
     else if (k == "verify") verify = (int)v; else if (k == "vK1") vK1 = (int)v; else if (k == "vK2") vK2 = (int)v;
     else if (k == "widenFrac") widenFrac = v; else if (k == "buildBase") buildBase = v;
     else if (k == "bookMargin") bookMargin = v;
@@ -45,10 +46,15 @@ inline double msSince(Clock::time_point t) { return std::chrono::duration<double
 inline double staticEval(const Game& g, int S, const Params& P) {
   int R = TOTAL_PLIES - g.ply;
   double v = (g.score[S] - g.score[1 - S]) + P.alpha * R * (g.stars[S] - g.stars[1 - S]);
-  if (P.hw != 0) {
-    int b[2] = {0, 0};
-    for (int s = 0; s < 2; s++) for (int i = 0; i < 3; i++) b[s] = std::max(b[s], g.hands[s].b[i].stars);
+  if (P.hw != 0 || P.hcov != 0) {
+    double b[2] = {0, 0}, cv[2] = {0, 0};
+    for (int s = 0; s < 2; s++) for (int i = 0; i < 3; i++) {
+      const BP& bp = g.hands[s].b[i];
+      if (bp.stars > b[s]) b[s] = bp.stars;
+      if (P.hcov != 0 && bp.stars) cv[s] = std::max(cv[s], (double)bp.cover);
+    }
     v += P.hw * P.alpha * (b[S] - b[1 - S]) * (R * 0.5) * (R * 0.5);
+    v += P.hcov * P.alpha * (cv[S] - cv[1 - S]) * (R * 0.5);
   }
   return v;
 }

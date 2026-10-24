@@ -15,10 +15,14 @@ struct Book {
   bool hasTarget[2] = {false, false}; Hand target[2];
 };
 
+inline bool loadBookStr(const std::string& text, Book& B);
 inline bool loadBook(const std::string& path, Book& B) {
   std::ifstream f(path); if (!f) return false;
   std::stringstream ss; ss << f.rdbuf();
-  JVal v = JParser(ss.str()).parse();
+  return loadBookStr(ss.str(), B);
+}
+inline bool loadBookStr(const std::string& text, Book& B) {
+  JVal v = JParser(text).parse();
   if (const JVal* m = v.get("maxPly")) B.maxPly = (int)m->n;
   if (const JVal* e = v.get("edits")) for (int s = 0; s < 2; s++) {
     if (const JVal* l = e->get(std::to_string(s))) for (auto& x : l->a) B.edits[s].push_back(x.s);
@@ -100,3 +104,6 @@ std::string bookNext(const Book& B, const Game& g) {
   }
   return "";
 }
+
+// Built-in default book: lab Fortlite (31-1 vs no-book v5 in arena, 1s/move).
+static const char* BUILTIN_BOOK = R"BOOK({"maxPly":40,"edits":{"0":["3:1,1>2:2,-1","3:1,0>2:0,1","3:0,0>2:-1,0","3:0,0>2:-3,2","3:-1,1>2:-3,3","3:0,1>2:-2,1","1:1,1>2:-1,4","1:1,0>2:0,3","1:0,0>2:-2,4"],"1":["3:1,1>2:2,1","3:1,0>2:2,0","3:0,0>2:1,2","3:0,0>2:0,-1","3:-1,1>2:1,0","3:0,1>2:-1,1","1:1,1>2:-2,4","1:1,0>2:-2,3","1:0,0>2:-1,4"]},"target":{"0":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"-1,2":"star","0,2":"wall","0,1":"star","-1,1":"wall","-2,2":"star","-2,3":"wall","-1,3":"star","1,0":"plain","1,1":"plain","0,0":"plain","-3,2":"plain","-3,3":"plain","-2,1":"plain","-1,4":"plain","0,3":"plain","-2,4":"plain"},{"0,0":"star"}],"1":[{"1,0":"star","0,0":"plain","0,1":"plain","1,1":"plain"},{"0,2":"star","1,2":"star","1,1":"wall","0,1":"star","-1,2":"wall","-1,3":"star","0,3":"wall","2,2":"plain","2,1":"plain","1,3":"plain","0,0":"plain","1,0":"plain","-1,1":"plain","-2,4":"plain","-2,3":"plain","-1,4":"plain"},{"0,0":"star"}]}})BOOK";

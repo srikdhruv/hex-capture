@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
     else if (a == "--perft") perft = true;
     else if (a == "--seed") seed = strtoull(nxt().c_str(), nullptr, 10);
     else if (a == "--book") bookPath = nxt();
+    else if (a == "--nobook") bookPath = "none";
     else if (a == "--booka") bookA = nxt();
     else if (a == "--bookb") bookB = nxt();
     else if (a == "--a") pa.set(nxt());
@@ -60,9 +61,23 @@ int main(int argc, char** argv) {
   if (threads <= 0) threads = max(1u, min(16u, thread::hardware_concurrency()));
   if (dump) return runDump();
   Book book, ba, bb;
-  if (!bookPath.empty() && !loadBook(bookPath, book)) fprintf(stderr, "book load failed: %s\n", bookPath.c_str());
-  if (!bookA.empty()) loadBook(bookA, ba);
-  if (!bookB.empty()) loadBook(bookB, bb);
+  if (bookPath.empty()) { try { loadBookStr(BUILTIN_BOOK, book); } catch (...) {} }
+  else if (bookPath != "none" && !loadBook(bookPath, book)) fprintf(stderr, "book load failed: %s\n", bookPath.c_str());
+  if (bookA.empty()) ba = book; else if (bookA != "none") loadBook(bookA, ba);
+  if (bookB.empty()) bb = book; else if (bookB != "none") loadBook(bookB, bb);
+  if (getenv("BP_BOOKTEST")) {
+    for (int seat = 0; seat < 2; seat++) {
+      Game g; g.setup(); g.ply = seat == 0 ? 0 : 1;
+      for (int k = 0; k < 30; k++) {
+        string m = bookNext(book, g);
+        int d = book.hasTarget[seat] ? handDist(g.hands[seat], book.target[seat]) : -1;
+        printf("seat %d step %d dist %d move %s\n", seat, k, d, m.c_str());
+        if (m.empty()) break;
+        Move mv; if (!parseEdit(m, mv)) break; Game::applyEditHand(g.hands[seat], mv);
+      }
+    }
+    return 0;
+  }
   if (selfplay >= 0) return runSelfplay(selfplay, timeMs, threads, pa, pb, seed, &ba, &bb);
 
   string fallback;

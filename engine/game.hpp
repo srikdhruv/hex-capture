@@ -23,12 +23,14 @@ inline int turnOf(int ply) { return (ply == 0 || ((ply - 1) >> 1) % 2 == 1) ? 0 
 inline int movesLeftInTurn(int ply) { return ply == 0 ? 1 : std::min(2 - ((ply - 1) % 2), TOTAL_PLIES - ply); }
 inline const char* kindName(int k) { return k == WALL ? "wall" : k == STAR ? "star" : "plain"; }
 
+inline bool g_needCover = false;
 struct BP {
-  int n = 0, stars = 0, diam = 0;
+  int n = 0, stars = 0, diam = 0, cover = 0;  // cover: sum over stars of in-shape neighbours
   int8_t q[24], r[24]; uint8_t k[24]; int d[24];
   void finalize() {
-    stars = 0; diam = 0;
+    stars = 0; diam = 0; cover = 0;
     for (int i = 0; i < n; i++) { d[i] = r[i] * G + q[i]; if (k[i] == STAR) stars++; }
+    if (g_needCover) for (int i = 0; i < n; i++) if (k[i] == STAR) for (int dd = 0; dd < 6; dd++) if (find(q[i] + DQ[dd], r[i] + DR[dd]) >= 0) cover++;
     for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) {
       int dq = q[i] - q[j], dr = r[i] - r[j], ds = -dq - dr;
       int h = (abs(dq) + abs(dr) + abs(ds)) / 2; if (h > diam) diam = h;
