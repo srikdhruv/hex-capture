@@ -1,0 +1,49 @@
+BLUEPRINTS TERMINOLOGY (what players and we called things; used in lab/games/_report.txt)
+=====================================================================================
+
+BOARD / RULE TERMS
+  blueprint / piece   One of the 3 shapes in a hand (#1 #2 #3). "Stamp" = place it; "edit" = move one cell of one blueprint.
+  stamp               A placement. Every enemy non-wall cell adjacent to the stamped cells is erased.
+  capture             Erasing enemy STARS with a stamp; points = stars erased x (your stars on board BEFORE the stamp).
+  multiplier          Your current star count (the factor in the capture formula).
+  flower              The 7-hex start shape (centre star + ring). Blue has 3 at r=-1 (q -6/-10/-2), Red mirrored (6/10/2).
+  front inner flower  Blue's (-2,0) / Red's (2,0) start flower, nearest the enemy; usually sealed last, the classic target.
+  ply / turn          120 actions; Blue acts once at ply 0, then R R B B ...; a "turn" = 2 actions.
+
+TACTICAL TERMS
+  snipe               Stamping a tiny piece (1-3 cells) into an empty hex touching an enemy star (and one of your cells) to erase it.
+  sniper              The tiny piece used to snipe (our Fortlite #3 = a single star; top players use a wall piece).
+  www                 A 3-WALL blueprint (bent 3-chain, e.g. {0,0 0,1 -1,2}); made by editing the stars out of the start #2.
+                      Wall stamps erase adjacent enemy cells like any stamp but can never be erased themselves (immune sniper/sealer).
+  ww / domino         2-wall piece; reorient with an edit (action 1) and place exactly (action 2).
+  breach              Erasing a shield cell next to an enemy star (action 1) so a snipe can land in the hole (action 2).
+  breach + snipe      The two-action capture pattern through a shield.
+  hole                Empty hex touching your star AND an enemy cell = an immediate snipe target against you.
+  shield              Own plains/walls wrapped around a star so no empty hex touches it.
+  crack               Breaking into a sealed/shielded group (first capture against a turtle).
+  deny                Dropping cells (ideally walls) where the enemy's big pieces want to land / cutting their paths.
+  slither / snake     Advancing a chain of small stamps (often walls) toward enemy stars.
+
+STRUCTURAL / STRATEGIC TERMS
+  seal / sealed       No empty path from the enemy reaches any hex next to your stars; sealed stars can never be captured.
+  seal-need           (analysis) min number of empty hexes that must become your walls to seal all your stars
+                      (exact min vertex cut, tools/scout/replay.mjs via lab/sealcut.mjs). 0 = sealed.
+  open stars          (analysis) your stars with an empty neighbour connected by empty hexes to the outside.
+  star bank           Keeping stars inside a blueprint you rarely stamp (e.g. 11-cell 5-star #3) so they don't raise
+                      the enemy's targets; top sealers park 5 stars this way.
+
+ARCHETYPES (classifier in tools/scout/analyze.py, by what a player stamps)
+  sealer / turtle / wall city / fortress-of-walls
+                      >=50% of stamps are wall-only (www/ww/w) and <=15 stars on board at ply 40. Keeps the 5-6 start
+                      stars, seals by ~ply 30-70, wins by small snipe margins; the opponent usually resigns.
+  fortress (Fortlite-like)
+                      Dominant stamp is a big (>=12 cell) piece with 4-6 stars wrapped in plains (our Fortlite 16c:4s3w9p,
+                      Hex19). "Every stamp = +4 protected stars."
+  blob / star-flood / stacker
+                      >=40% of stamps carry >=3 stars (compact flowers like 9c:6s3w0p, 13c:6s3w4p). Big multipliers,
+                      scores in the thousands, many exposed stars.
+  stick / probe / line
+                      >=30% of stamps are plain-only pieces of >=4 cells (e.g. Eris' 6-plain line): long reach to erase
+                      enemy cells at distance.
+  rusher              (opening tag) first stamp by ply 2 with <=1 edit: stamps at the enemy immediately.
+  mixed               None of the above dominates.
