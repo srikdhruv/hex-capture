@@ -6,3 +6,16 @@ Engine knobs: alpha (star value/ply), beta, bookMargin, hw, minScale/vulnK/reach
 R8 (lost 0-84 as Red vs Eris, wall turtle): opp kept 6 stars sealed by ~96 walls (3-wall line stamps),
 attacked with a 6-plain line; ate 14 of our stars at x6. Our 157 stars were pure liability.
 Lesson: once enemy stars are sealed, alpha->0 and keep our stars out of reach of their longest piece.
+
+R9 (lost 52-156 as Blue vs aryan, wall builder #2): opp edited 6x early (stars into #1 = flower + 4-star tail,
+#2 = 3-wall line), then stamped walls every action (63 walls by ply 83) around its 10 stars.
+- Our only capture: ply 43-44 breach+snipe (3@2,2 3@2,1) on their front flower, 52 pts. All other holes walled off by ~ply 50.
+- They scored with WALL stamps (walls erase adjacent plains/stars): 10/stamp early; late they stamped their 6-star #1
+  (9 -> 30 stars) and then took 2 stars x20 and 1 x30. Their late multiplier jump is the danger.
+- Engine middlegame edits wrecked Fortlite: 48 moved #1's star into #2 (5th, exposed star), 56 deleted the #3 sniper,
+  later shuffles. Lab says never do these. Now an autopick daemon replaces engine edits touching #2/#3 after ply 20
+  unless a capture is on the board.
+- Lessons: vs wall builders the crack must come before ~ply 40 (their front flower). After they seal, every exposed
+  star of ours near their walls is -multiplier; build far away only (engine did run NE, good) and refill holes.
+Pilot mechanics: prefer_wait_ms=3000 + autopick daemon answering every pick instantly = conditional rules at ~0 clock.
+Stale pick-<ply>.json files from an old game can be replayed in the next game: daemon deletes them.
