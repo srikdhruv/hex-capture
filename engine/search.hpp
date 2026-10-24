@@ -633,7 +633,9 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   return res;
 }
 
-inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const Params& pb, uint64_t seed) {
+struct Book; std::string bookNext(const Book& B, const Game& g);
+inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const Params& pb, uint64_t seed,
+                       const Book* ba = nullptr, const Book* bb = nullptr) {
   std::atomic<int> next{0}; std::mutex mu;
   int winsA = 0, winsB = 0, draws = 0; long long sumA = 0, sumB = 0;
   int par = std::max(1, std::min(threads, N));
@@ -649,7 +651,9 @@ inline int runSelfplay(int N, int timeMs, int threads, const Params& pa, const P
       while (g.ply < TOTAL_PLIES) {
         int s = turnOf(g.ply);
         const Params& P = (s == aSeat) ? pa : pb;
-        SearchResult r = searchRoot(g, timeMs, innerThreads, P, none, false, &rng);
+        const Book* bk = (s == aSeat) ? ba : bb;
+        std::string bm = bk ? bookNext(*bk, g) : std::string();
+        SearchResult r = searchRoot(g, timeMs, innerThreads, P, none, false, &rng, bm);
         Move m;
         if (r.move.empty() || !g.parseMove(r.move, m)) { g.ply++; continue; }
         int before = g.score[s];

@@ -2,6 +2,7 @@
 #include <bits/stdc++.h>
 #include "game.hpp"
 #include "search.hpp"
+#include "book.hpp"
 using namespace std;
 
 static string readAll(istream& in) { stringstream ss; ss << in.rdbuf(); return ss.str(); }
@@ -39,7 +40,7 @@ static void printFallback(const string& mv) {
 
 int main(int argc, char** argv) {
   int timeMs = 8000, threads = 0, selfplay = -1; bool dump = false, perft = false;
-  Params pa, pb; uint64_t seed = 12345;
+  Params pa, pb; uint64_t seed = 12345; std::string bookPath, bookA, bookB;
   for (int i = 1; i < argc; i++) {
     string a = argv[i];
     auto nxt = [&]() -> string { return i + 1 < argc ? string(argv[++i]) : string(); };
@@ -49,13 +50,20 @@ int main(int argc, char** argv) {
     else if (a == "--dump") dump = true;
     else if (a == "--perft") perft = true;
     else if (a == "--seed") seed = strtoull(nxt().c_str(), nullptr, 10);
+    else if (a == "--book") bookPath = nxt();
+    else if (a == "--booka") bookA = nxt();
+    else if (a == "--bookb") bookB = nxt();
     else if (a == "--a") pa.set(nxt());
     else if (a == "--b") pb.set(nxt());
     else if (a == "--p") { string s = nxt(); pa.set(s); pb.set(s); }
   }
   if (threads <= 0) threads = max(1u, min(16u, thread::hardware_concurrency()));
   if (dump) return runDump();
-  if (selfplay >= 0) return runSelfplay(selfplay, timeMs, threads, pa, pb, seed);
+  Book book, ba, bb;
+  if (!bookPath.empty() && !loadBook(bookPath, book)) fprintf(stderr, "book load failed: %s\n", bookPath.c_str());
+  if (!bookA.empty()) loadBook(bookA, ba);
+  if (!bookB.empty()) loadBook(bookB, bb);
+  if (selfplay >= 0) return runSelfplay(selfplay, timeMs, threads, pa, pb, seed, &ba, &bb);
 
   string fallback;
   try {
@@ -75,7 +83,9 @@ int main(int argc, char** argv) {
       printf("]}\n");
       return 0;
     }
-    SearchResult res = searchRoot(gm, timeMs, threads, pa, allowed, true);
+    std::string bm;
+    try { bm = bookNext(book, gm); } catch (...) { bm.clear(); }
+    SearchResult res = searchRoot(gm, timeMs, threads, pa, allowed, true, nullptr, bm);
     if (res.move.empty()) { if (fallback.empty()) fallback = "pass"; printFallback(fallback); return 0; }
     puts(res.json.c_str()); fflush(stdout);
   } catch (exception& e) {
