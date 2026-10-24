@@ -16,7 +16,8 @@ rules.json (re-read every ply; if it is broken, the last good version stays in f
   "protect_from": 20,                    # from this ply: no edits touching protect_pieces unless a capture is available
   "protect_pieces": [2, 3],
   "star_safe_dist": 3,                   # non-capturing stamps putting a STAR within N hexes of enemy cells are skipped
-  "take_capture_min": 0,                 # >0: play the top move with the most points if it has at least this many
+  "take_capture_min": 0,                 # >0: if the engine move scores < this, play the top move with the most
+                                         #     points when it has at least this many
   "approach": {"ply_min": 10, "ply_max": 80, "min_gain": 2, "time_s": 1.0, "depth": 4},
                                          # multi-turn approach planner (tools/approach.py): when no capture is
                                          # available and its plan cuts distance-to-crack by >= min_gain (hex cost)
@@ -24,7 +25,7 @@ rules.json (re-read every ply; if it is broken, the last good version stays in f
   "when": [                              # conditional rules, in order; all listed conditions must hold
     {"if": {"ply_min": 40, "ply_max": 80, "capture_available": false, "engine_move": "*>*",
             "left": 2, "clock_below_ms": 30000, "score_diff_below": 0, "our_stars_above": 50,
-            "danger_points_above": 100},
+            "danger_points_above": 100, "engine_points_below": 50},
      "then": {"veto": ["1:*"], "prefer": ["3@*"], "pick": "best_capture|best_non_edit|engine|<move>"},
      "note": "why"}
   ]
@@ -185,6 +186,7 @@ class Daemon:
                 ("score_diff_below", lambda v: diff < v), ("score_diff_above", lambda v: diff > v),
                 ("our_stars_below", lambda v: our_stars < v), ("our_stars_above", lambda v: our_stars > v),
                 ("danger_points_above", lambda v: danger_pts > v),
+                ("engine_points_below", lambda v: pts.get(engine, 0) < v),
             ]
             if all(fn(c[k]) for k, fn in conds if k in c):
                 t = w.get("then") or {}
@@ -238,7 +240,7 @@ class Daemon:
         self.approach_next = None
 
         tmin = rules.get("take_capture_min") or 0
-        if tmin > 0 and caps:
+        if tmin > 0 and caps and pts.get(engine, 0) < tmin:  # never override an engine move that already captures
             best = max(cands, key=lambda m: pts.get(m, 0))
             if pts.get(best, 0) >= tmin:
                 return best, f"take capture {pts[best]}" + tag

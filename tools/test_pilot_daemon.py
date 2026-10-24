@@ -43,6 +43,9 @@ assert dec([EDIT3, P1], {"protect_from": 2})[0] == P1
 assert dec([EDIT3, P1], {"protect_from": 2}, caps={P1: 5})[0] == EDIT3  # capture on board: edits allowed
 assert dec([EDIT3, P1], {"protect_from": 10})[0] == EDIT3
 assert dec([P1, P2], {"take_capture_min": 5}, caps={P2: 30})[0] == P2
+assert dec([P1, P2], {"take_capture_min": 5}, caps={P1: 20, P2: 30})[0] == P1  # engine already captures: keep it
+w = {"when": [{"if": {"engine_points_below": 10}, "then": {"pick": "best_capture"}}]}
+assert dec([P1, P2], w, caps={P2: 30})[0] == P2 and dec([P1, P2], w, caps={P1: 20, P2: 30})[0] == P1
 w = {"when": [{"if": {"ply_min": 1, "capture_available": False, "left": 2}, "then": {"prefer": [P2]}, "note": "t"}]}
 mv, why = dec([P1, P2], w)
 assert mv == P2 and "[t]" in why, why
