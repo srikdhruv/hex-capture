@@ -33,6 +33,7 @@ struct Params {
   double ordMy = 0.8;     // ordering: weight of my follow-up capture (mid-turn)
   double ordOpp = 1.0;    // ordering: weight of opponent 1-action capture
   double expo = 0.02;     // positional: exposed star (has empty neighbour) * enemy multiplier
+  double approachW = 0;     // positional: (their approach cost - ours) to a hex next to an enemy star
   double expoB = 0;         // positional: BFS-reachable stars (targets) * multiplier, both sides
   double mob = 0.02;      // positional: frontier size difference
   double hcov = 0;        // hand: covered star-neighbour count of best star blueprint (shield value)
@@ -44,6 +45,7 @@ struct Params {
   double widenFrac = 0.45;
   double widenStop = 0.85;
   double starScale[2] = {1, 1};  // per-side star value scale (set per search from enemy vulnerability)
+  int noEditPly = 0;       // from this ply, edits only when they create a capture (0 = off)
   int bookYield = 2;        // 0: margin only, 1: yield if book concedes more stars, 2: yield on any threat/capture
   double minScale = 0.3;    // star scale floor
   int reachL = 12;          // BFS reach (empty hexes) for capture targets; 0 = use reachD hex distance
@@ -61,10 +63,10 @@ struct Params {
     std::string k = kv.substr(0, p); double v = atof(kv.c_str() + p + 1);
     if (k == "alpha") alpha = v; else if (k == "beta") beta = v; else if (k == "ordMy") ordMy = v;
     else if (k == "ordOpp") ordOpp = v; else if (k == "expo") expo = v;
-    else if (k == "mob") mob = v; else if (k == "expoB") expoB = v; else if (k == "third") third = (int)v;
+    else if (k == "mob") mob = v; else if (k == "expoB") expoB = v; else if (k == "approachW") approachW = v; else if (k == "third") third = (int)v;
     else if (k == "hw") hw = v; else if (k == "hcov") { hcov = v; if (v != 0) g_needCover = true; } else if (k == "editThreat") editThreat = (int)v; else if (k == "incr") incr = (int)v;
     else if (k == "verify") verify = (int)v; else if (k == "vK1") vK1 = (int)v; else if (k == "vK2") vK2 = (int)v;
-    else if (k == "widenFrac") widenFrac = v; else if (k == "widenStop") widenStop = v; else if (k == "vulnK") vulnK = (int)v; else if (k == "bookYield") bookYield = (int)v; else if (k == "reachL") reachL = std::min(250, (int)v);
+    else if (k == "widenFrac") widenFrac = v; else if (k == "widenStop") widenStop = v; else if (k == "vulnK") vulnK = (int)v; else if (k == "bookYield") bookYield = (int)v; else if (k == "noEditPly") noEditPly = (int)v; else if (k == "reachL") reachL = std::min(250, (int)v);
     else if (k == "minScale") minScale = v; else if (k == "reachD") reachD = std::min(7, (int)v); else if (k == "buildBase") buildBase = v;
     else if (k == "bookMargin") bookMargin = v;
     else if (k == "maxK1") maxK1 = (int)v; else if (k == "maxK2") maxK2 = (int)v;
@@ -106,6 +108,34 @@ inline double staticEval(const Game& g, int S, const Params& P) {
   return v;
 }
 
+// Approach cost for X: fewest hexes X must cover (empty or erasable enemy plains) from its frontier
+// to occupy a hex adjacent to an enemy star. Returns cap if none within cap.
+inline int approachCost(Game& g, int X, int cap) {
+  int Y = 1 - X;
+  int q0 = std::max(-SAFE, g.minq - 2), q1 = std::min(SAFE, g.maxq + 2), r0 = std::max(-SAFE, g.minr - 2), r1 = std::min(SAFE, g.maxr + 2);
+  static thread_local std::vector<uint8_t> dist; if (dist.empty()) dist.assign(G * G, 255);
+  std::vector<int> touched, cur, nxt;
+  auto passable = [&](int x) { uint8_t c = g.g[x]; return !c || (cseat(c) == Y && ckind(c) == PLAIN); };
+  auto nearStar = [&](int x) { for (int d = 0; d < 6; d++) { uint8_t c = g.g[x + ND[d]]; if (c && cseat(c) == Y && ckind(c) == STAR) return true; } return false; };
+  int found = cap;
+  for (int r = g.minr - 1; r <= g.maxr + 1 && found == cap; r++) for (int q = g.minq - 1; q <= g.maxq + 1; q++) {
+    int i = IDX(q, r); if (!passable(i) || dist[i] != 255) continue;
+    for (int d = 0; d < 6; d++) { uint8_t c = g.g[i + ND[d]]; if (c && cseat(c) == X) { dist[i] = 1; touched.push_back(i); cur.push_back(i); if (nearStar(i)) found = 1; break; } }
+  }
+  for (int lev = 1; lev < cap && found == cap && !cur.empty(); lev++) {
+    nxt.clear();
+    for (int i : cur) for (int d = 0; d < 6; d++) {
+      int x = i + ND[d]; if (dist[x] != 255 || !passable(x)) continue;
+      int q = QOF(x), r = ROF(x); if (q < q0 || q > q1 || r < r0 || r > r1) continue;
+      dist[x] = lev + 1; touched.push_back(x); nxt.push_back(x);
+      if (nearStar(x)) { found = lev + 1; }
+    }
+    cur.swap(nxt);
+  }
+  for (int i : touched) dist[i] = 255;
+  return found;
+}
+
 inline int reachableTargets(Game& g, int X, int L);
 // Positional tie-break terms from S's perspective.
 inline double positional(Game& g, int S, const Params& P) {
@@ -114,6 +144,10 @@ inline double positional(Game& g, int S, const Params& P) {
     int O = 1 - S;
     int tS = reachableTargets(g, S, P.reachL), tO = reachableTargets(g, O, P.reachL);  // tO = my stars they can reach
     extra = P.expoB * (tS * g.stars[S] - tO * g.stars[O]);
+  }
+  if (P.approachW != 0) {
+    int cS = approachCost(g, S, 24), cO = approachCost(g, 1 - S, 24);
+    extra += P.approachW * (cO - cS);
   }
   if (P.expo == 0 && P.mob == 0) return extra;
   int expo[2] = {0, 0}, front[2] = {0, 0};
@@ -577,7 +611,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   Params P = P0;
   if (P.vulnK > 0) for (int x = 0; x < 2; x++)
     P.starScale[x] = std::max(P.minScale, std::min(1.0, (P.reachL > 0 ? reachableTargets(root, x, P.reachL) : vulnerableStars(root, 1 - x, P.reachD)) / (double)P.vulnK));
-  if (verbose) fprintf(stderr, "starScale %.2f %.2f\n", P.starScale[0], P.starScale[1]);
+  if (verbose) fprintf(stderr, "starScale %.2f %.2f approach %d %d\n", P.starScale[0], P.starScale[1], approachCost(root, 0, 24), approachCost(root, 1, 24));
   SearchResult res;
   if (root.ply >= TOTAL_PLIES) return res;
   int S = turnOf(root.ply), O = 1 - S, L = movesLeftInTurn(root.ply);
@@ -597,6 +631,19 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
     if (T == 1) { work(); return; }
     std::vector<std::thread> th; for (int t = 0; t < T; t++) th.emplace_back(work); for (auto& t : th) t.join();
   };
+  // Post-book edit guard: after noEditPly, edits only if they increase our immediate capture.
+  bool noEditNow = P.noEditPly > 0 && root.ply >= P.noEditPly;
+  if (noEditNow) {
+    int base = L >= 2 ? bestCap1(root, S) : 0;
+    std::vector<Move> B;
+    for (auto& m : A) {
+      if (m.type != 1) { B.push_back(m); continue; }
+      if (L < 2) continue;
+      Undo u; root.apply(m, u); int c = bestCap1(root, S); root.undo(u);
+      if (c > base) B.push_back(m);
+    }
+    if (!B.empty()) A.swap(B);
+  }
   // Ordering of first actions
   int n1 = A.size(); std::vector<double> ov(n1, -1e18);
   std::vector<CapC> C0S, C0O;
@@ -623,6 +670,7 @@ inline SearchResult searchRoot(Game& root, int timeMs, int threads, const Params
   auto buildSecond = [&](Game& g, int i) {
     Undo u; g.apply(A[ord[i]], u);
     std::vector<Move> B; g.genAll(B);
+    if (noEditNow) { std::vector<Move> B2; for (auto& m : B) if (m.type != 1) B2.push_back(m); if (!B2.empty()) B.swap(B2); }
     std::vector<std::pair<double, int>> sc(B.size());
     std::vector<CapC> C0; if (P.incr) capList(g, O, C0);
     for (size_t k = 0; k < B.size(); k++) {

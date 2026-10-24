@@ -108,8 +108,10 @@ int main(int argc, char** argv) {
   try {
     string in = readAll(cin);
     JVal root = JParser(in).parse();
-    const JVal* view = root.get("view");
-    if (!view) view = &root;
+    const JVal* top = &root;
+    if (!root.get("view") && root.get("state") && root.get("state")->get("view")) top = root.get("state");  // postmortem wrapper
+    const JVal* view = top->get("view");
+    if (!view) view = top;
     vector<string> allowed;
     if (const JVal* mv = view->get("moves")) for (auto& x : mv->a) if (x.t == JVal::STR) allowed.push_back(x.s);
     if (!allowed.empty()) fallback = allowed[0];
@@ -125,7 +127,7 @@ int main(int argc, char** argv) {
     std::string bm;
     int myEdits = -1;
     {
-      const JVal* hist = root.get("history");
+      const JVal* hist = top->get("history");
       if (!hist) hist = view->get("history");
       if (hist && hist->t == JVal::ARR) {
         myEdits = 0; int seat = turnOf(gm.ply);
