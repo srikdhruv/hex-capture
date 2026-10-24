@@ -1,6 +1,30 @@
 // Turn-based selective search for Blueprints.
 #pragma once
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <mutex>
+#include <numeric>
+#include <random>
+#include <set>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 #include "game.hpp"
 
 struct Params {
@@ -39,6 +63,19 @@ struct Params {
     else fprintf(stderr, "unknown param %s\n", k.c_str());
   }
 };
+
+inline int popcount64(uint64_t x) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_popcountll(x);
+#elif defined(_MSC_VER) && defined(_M_X64)
+  return (int)__popcnt64(x);
+#else
+  x = x - ((x >> 1) & 0x5555555555555555ULL);
+  x = (x & 0x3333333333333333ULL) + ((x >> 2) & 0x3333333333333333ULL);
+  x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
+  return (int)((x * 0x0101010101010101ULL) >> 56);
+#endif
+}
 
 using Clock = std::chrono::steady_clock;
 inline double msSince(Clock::time_point t) { return std::chrono::duration<double, std::milli>(Clock::now() - t).count(); }
@@ -326,7 +363,7 @@ inline void editCaptures(Game& g, int O, const Params& P, Reply& rep) {
         if (QOF(e) < -SAFE + 22 || QOF(e) > SAFE - 22 || ROF(e) < -SAFE + 22 || ROF(e) > SAFE - 22) continue;
         for (int j = 0; j < M.n; j++) {
           if ((M.sm[j] & occM[x]) || !(M.nm[j] & ownM[x])) continue;
-          int n = __builtin_popcountll(M.nm[j] & starM[x]);
+          int n = popcount64(M.nm[j] & starM[x]);
           if (n > best.n) { best.n = n; best.off = e - M.d[j]; }
         }
       }

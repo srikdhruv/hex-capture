@@ -1,5 +1,29 @@
 // Blueprints engine CLI.
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <mutex>
+#include <numeric>
+#include <random>
+#include <set>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 #include "game.hpp"
 #include "search.hpp"
 #include "book.hpp"
