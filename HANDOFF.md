@@ -23,7 +23,9 @@ Use `--advise` for suggestions only (you play), and `--logs` to zip the game log
 - Token: `~/.hexbot/token` (0600). Browser cookie for game-history scraping: `~/.hexbot/cookie` (0600). Never commit either.
 - Live engine: `~/.hexbot/live/bp` is a symlink to a pinned build, `bp-<sha>`. The current one is `0de5e44`; older builds are kept for rollback.
 
-**If the bot dies:**
+**Auto-restart:** `tools/keepalive.sh` is running detached and restarts the bot and the daemon within 30s if either dies.
+
+**If the bot dies and keepalive is not running:**
 ```bash
 cd ~/hex-capture
 ENGINE_CMD="$HOME/.hexbot/live/bp --threads 8" nohup setsid client/.venv/bin/python -u client/bot.py --no-update --pilot client/pilot >> client/logs/live-console.log 2>&1 &
