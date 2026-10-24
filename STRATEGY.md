@@ -91,6 +91,10 @@
   **Never put a 5th or 6th star into #2.** Fortlite's 4 stars with walls between them is the sweet spot.
   The last 5 plies hold only about 10% of the score: points come in steadily from ply 20 onward.
 
+- **Lab #10:**
+  - **Stamp #2 at least 7 hexes from every enemy cell unless the stamp captures.** Use the front line only for breach+snipe. Overall win rate 77% vs 56%.
+  - A 2-star domino sniper with a chevron #1 lost 11–53. **Keep Fortlite exactly as booked** (#3 = 1 star).
+
 ## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
 
 - **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
