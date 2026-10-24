@@ -42,3 +42,7 @@ HANDOFF (pilot #1 -> next pilot)
 - Engine handles tactics well (found the R9 breach+snipe itself). The pilot's levers that mattered: bookMargin vs rushers,
   alpha 0 vs sealed turtles, and stopping destructive post-book edits.
 - engine_args take effect from the NEXT engine call; picks/force must be prepared before the decision appears.
+- Engine agent added `--p noEditPly=N` (off by default; N=28 suggested after Fortlite): from ply N, the engine drops
+  first-action edits unless they raise the immediate capture, and never searches edits as the second action. It lost
+  4-12 in mirror selfplay, so it stays off by default. Only works if the LIVE binary (~/.hexbot/live/bp, pinned 14f47c5)
+  is rebuilt from that commit; an older binary just prints "unknown param" and ignores it.
