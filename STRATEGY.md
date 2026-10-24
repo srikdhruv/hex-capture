@@ -49,7 +49,11 @@
   - one **long piece** for infiltration and reach;
   - one **defensive "slither"** (a snake shape) that **carries the 3 walls** as shields.
 - Between them the two non-star pieces should cover **short and long, vertical and horizontal** shapes, so something always fits the hole you need.
-- Exact edit sequences per colour and test results will go in `lab/HAND_PLAN.md`.
+- **Lab #4 result, with realistic edit timing (n=32 per design):**
+  - This plan as stated (6 unshielded stars + a 6-plain line + a wall tail, 9 edits) **lost 5–27**.
+  - STACK5 (6 stars in #2 with the walls moved out) **lost 2–30**.
+  - **Fortlite (9 real edits) won 32–0, average margin +7200 — confirmed.**
+- **Verdict: shield the stars first.** Only stack 6 stars if you also wrap them all, which is what Hex19 does (14 edits).
 - **Caution from Lab #2 (n=64 bot games):** stacking only the stars (6 stars + 3 walls in #2, nothing else changed) **lost 19–45** to the no-edit baseline.
   The stacking side finished with more stars (237 vs 166) but lost 99 stars to captures, against 59.
   The reason: a 6-star stamp leaves 5 stars on its edge, while the standard flower leaves 3 on the edge and 1 safe in the centre. More edge stars means more targets.
