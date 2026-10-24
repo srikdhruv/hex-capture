@@ -34,9 +34,41 @@ from urllib.parse import urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import bprules  # noqa: E402  (pure-Python rules: offline self-test + no-dependency fallback policy)
+
+FROZEN = getattr(sys, "frozen", False)          # running as the PyInstaller "hexbot" executable
+BUNDLE = getattr(sys, "_MEIPASS", None)
+HOME_DIR = os.path.join(os.path.expanduser("~"), ".hexbot")
+TOKEN_FILE = os.path.join(HOME_DIR, "token")
+EXE = ".exe" if os.name == "nt" else ""
 GREEDY = os.path.join(REPO, "tools", "greedy.mjs")
 BPCLI = os.path.join(REPO, "tools", "bpcli.mjs")
-LOG_DIR = os.path.join(HERE, "logs")
+LOG_DIR = os.path.join(HOME_DIR, "logs") if FROZEN else os.path.join(HERE, "logs")
+if FROZEN and not os.environ.get("SSL_CERT_FILE"):
+    try:
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()  # bundled CA roots (python.org/macOS builds lack system certs)
+    except ImportError:
+        pass
+
+
+def default_engine_path():
+    cands = []
+    if BUNDLE:
+        cands.append(os.path.join(BUNDLE, "engine", "bp" + EXE))
+    if FROZEN:
+        cands.append(os.path.join(os.path.dirname(sys.executable), "bp" + EXE))
+    cands.append(os.path.join(REPO, "engine", "bp" + EXE))
+    for c in cands:
+        if os.path.isfile(c):
+            return c
+    return cands[-1]
+
+
+def node_available():
+    from shutil import which
+    return which("node") is not None and os.path.isfile(GREEDY)
 DEFAULT_TOURNAMENT = "f46b70969dee"
 CLOSE_STOP_CODES = (4001, 4003, 4004)
 
@@ -161,10 +193,10 @@ def think_budget_ms(remaining_ms, cap_ms, max_ms=None):
 # ----------------------------------------------------------------------------- move selection
 
 def _engine_cmd(spec):
-    if spec:
-        return shlex.split(spec)
-    default = os.path.join(REPO, "engine", "bp")
-    return [default]
+    cmd = shlex.split(spec) if spec else [default_engine_path()]
+    if os.path.basename(cmd[0]).startswith("bp") and "--threads" not in cmd:
+        cmd += ["--threads", str(max(1, (os.cpu_count() or 2) - 1))]
+    return cmd
 
 
 def _run_policy(cmd, state, time_ms, hard_timeout_s):
@@ -188,6 +220,12 @@ class Chooser:
         self.cmd = _engine_cmd(engine_spec)
         self.cap_ms = cap_ms
         self.max_ms = max_ms
+        exe = self.cmd[0]
+        if FROZEN and os.path.isfile(exe) and not os.access(exe, os.X_OK):
+            try:
+                os.chmod(exe, 0o755)
+            except OSError:
+                pass
         self.pv_cache = {}  # (room, ply) -> move predicted by the engine's PV for our next action
         self._warned = set()
 
@@ -223,9 +261,10 @@ class Chooser:
             attempts.append(("engine", self.cmd, budget, budget / 1000 + 1.5))
         elif "noengine" not in self._warned:
             self._warned.add("noengine")
-            log("engine not found at", self.cmd[0], "- using tools/greedy.mjs fallback")
-        g_ms = max(100, min(1500, budget))
-        attempts.append(("greedy", ["node", GREEDY], g_ms, g_ms / 1000 + 2.5))
+            log("engine not found at", self.cmd[0], "- using fallback policy")
+        if node_available():
+            g_ms = max(100, min(1500, budget))
+            attempts.append(("greedy", ["node", GREEDY], g_ms, g_ms / 1000 + 2.5))
         for name, cmd, t_ms, hard in attempts:
             if remaining is not None and hard * 1000 > remaining - 1500:
                 hard = max(0.5, (remaining - 1500) / 1000)
@@ -251,8 +290,13 @@ class Chooser:
                 if alt_move in legal:
                     info.update(source=name + "-top", eval=None)
                     return alt_move, info
-        move = cached or random.choice(moves)
-        info.update(source="pv-cache" if cached else "random")
+        if cached:
+            info.update(source="pv-cache")
+            return cached, info
+        move = bprules.best_capture_move(view)
+        if move not in legal:
+            move = random.choice(moves)
+        info.update(source="py-fallback")
         return move, info
 
 
@@ -280,6 +324,7 @@ class Bot:
         self.checked_in = set()
         self.logged_tournament_shape = False
         self.finished = set()
+        self.room_round = {}     # room -> tournament round (for status lines)
         self.ws = None
 
         class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -303,7 +348,8 @@ class Bot:
         except urllib.error.HTTPError as error:
             if error.code in (401, 403):
                 self.stopped.set()
-                log(f"HTTP {error.code} on {path}: token expired/revoked or enrollment/supported-games problem. Stopping.")
+                log(f"HTTP {error.code} on {path}: token expired/revoked or enrollment/supported-games problem. Stopping."
+                    + (" (saved token: run with --forget-token, then paste a new one)" if os.path.isfile(TOKEN_FILE) else ""))
                 if self.ws:
                     try:
                         self.ws.close()
@@ -415,9 +461,13 @@ class Bot:
             return
         tid = self.room_tid.get(room)
         jlog(room, {"type": "decision", "ply": ply, "seat": turn, "move": move, **info, "dry_run": self.dry_run})
-        log(f"[{room}] ply {ply} seat {turn} left {view.get('left')} -> {move} via {info.get('source')} "
-            f"eval={info.get('eval')} clock={info.get('clock_ms')}ms budget={info.get('budget_ms')}ms "
-            f"scores={view.get('scores')}")
+        sc = view.get("scores") or [0, 0]
+        rnd = self.room_round.get(room)
+        where = f"Round {rnd}" if rnd is not None else ("Game " + str(room)[:8])
+        colour = "Blue" if turn == 0 else "Red"
+        log(f"{where} | {colour} | ply {ply}/120 (action {3 - (view.get('left') or 1) if ply else 1}) | move {move} | "
+            f"score Blue {sc[0]} - Red {sc[1]} | via {info.get('source')} eval={info.get('eval')} "
+            f"clock={info.get('clock_ms')}ms think={info.get('budget_ms')}ms")
         if self.dry_run:
             return
         path = f"/api/engine/tournaments/{tid}" if tid else f"/api/engine/games/{room}"
@@ -486,6 +536,7 @@ class Bot:
                     already = job["room"] in self.rooms
                 if not already:
                     log(f"round {state.get('round')}: watching board {job['room']}")
+                    self.room_round[job["room"]] = state.get("round")
                     self.watch(job["room"], tid)
         elif state.get("status") and state.get("status") != "playing":
             log("tournament status:", state.get("status"))
@@ -578,8 +629,9 @@ def bpcli(req):
 def selftest(chooser, plies):
     """Play `plies` plies locally (both seats) through Chooser with a simulated server state + clock."""
     moves, clock = [], [60000, 60000]
+    game = bprules.setup()
     for _ in range(plies):
-        view = bpcli({"op": "replay", "moves": moves})["view"]
+        view = bprules.to_view(game)
         if view.get("result") or not view["moves"]:
             break
         seat = view["turn"]
@@ -595,9 +647,83 @@ def selftest(chooser, plies):
         log(f"ply {view['ply']:3d} seat {seat} -> {move:14s} via {info.get('source'):8s} eval={info.get('eval')} "
             f"used={used}ms clock={clock[seat]}ms scores={view['scores']} stars={view['stars']}")
         moves.append(move)
-    final = bpcli({"op": "replay", "moves": moves})["view"]
+        game = bprules.play(game, move)
+    final = bprules.to_view(game)
     log("selftest done:", len(moves), "plies; scores", final["scores"], "stars", final["stars"], "result", final["result"])
     log("moves:", " ".join(moves))
+
+
+def get_token(args):
+    """Token from STRATEGYJAM_TOKEN, else ~/.hexbot/token (only if saved with --save-token), else a hidden prompt."""
+    token = os.environ.get("STRATEGYJAM_TOKEN", "").strip()
+    saved = False
+    if not token and os.path.isfile(TOKEN_FILE):
+        try:
+            with open(TOKEN_FILE) as f:
+                token = f.read().strip()
+            saved = bool(token)
+            if saved:
+                log("using saved token from ~/.hexbot/token (run with --forget-token to delete it)")
+        except OSError:
+            token = ""
+    if not token:
+        import getpass
+        print("\nStrategyJam engine token needed. Get one at https://strategyjam.org: profile -> supported games ->\n"
+              "select Blueprints -> Connect engine. It is shown once and lasts 24h.", file=sys.stderr, flush=True)
+        while not token:
+            try:
+                token = getpass.getpass("Paste token (input hidden), then Enter: ").strip()  # reads the TTY, not stdin
+            except (EOFError, KeyboardInterrupt):
+                raise SystemExit("\nNo token given.")
+    if args.save_token and not saved:
+        os.makedirs(HOME_DIR, exist_ok=True)
+        fd = os.open(TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(token)
+        try:
+            os.chmod(TOKEN_FILE, 0o600)
+        except OSError:
+            pass
+        log("token saved to ~/.hexbot/token (permissions 0600)")
+    return token
+
+
+def detect_tournament(base):
+    """Find the live/upcoming Blueprints tournament from the public list; None if not found."""
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+    try:
+        req = urllib.request.Request(base + "/api/tournaments", headers={"Accept": "application/json", "User-Agent": "hexbot"})
+        with urllib.request.build_opener(NoRedirect).open(req, timeout=10) as r:
+            data = json.load(r)
+    except Exception as e:  # noqa: BLE001
+        log("tournament auto-detect failed:", type(e).__name__)
+        return None
+    items = data if isinstance(data, list) else next((data[k] for k in ("tournaments", "items", "data", "results")
+                                                       if isinstance(data, dict) and isinstance(data.get(k), list)), [])
+    rank = {"playing": 0, "running": 0, "active": 0, "live": 0, "checkin": 1, "check-in": 1,
+            "upcoming": 2, "registration": 2, "open": 2, "scheduled": 2, "pending": 2}
+    best = None
+    for t in items:
+        if not isinstance(t, dict):
+            continue
+        game = t.get("game") or t.get("gameId") or t.get("slug") or ""
+        if isinstance(game, dict):
+            game = game.get("slug") or game.get("id") or game.get("name") or ""
+        if "blueprints" not in str(game).lower():
+            continue
+        r = rank.get(str(t.get("status", "")).lower())
+        tid = t.get("id") or t.get("tournament") or t.get("slug")
+        if r is None or not tid:
+            continue
+        if best is None or r < best[0]:
+            best = (r, str(tid), t.get("name") or t.get("title") or "", t.get("status"))
+    if best:
+        log(f"tournament auto-detected: {best[1]} {best[2]!r} ({best[3]})")
+        return best[1]
+    log("no playing/upcoming Blueprints tournament found in /api/tournaments")
+    return None
 
 
 def main():
@@ -608,11 +734,21 @@ def main():
     ap.add_argument("--max-time-ms", type=int, default=int(os.environ.get("MAX_TIME_MS", "0")) or None,
                     help="hard cap on think time per action, overrides everything else")
     ap.add_argument("--engine", default=os.environ.get("ENGINE_CMD"), help="engine command (default <repo>/engine/bp)")
-    ap.add_argument("--tournament", default=os.environ.get("TOURNAMENT_ID", DEFAULT_TOURNAMENT))
+    ap.add_argument("--tournament", default=os.environ.get("TOURNAMENT_ID"),
+                    help="tournament id (default: auto-detect the live Blueprints tournament)")
+    ap.add_argument("--save-token", action="store_true", help="store the token in ~/.hexbot/token (0600) for next time")
+    ap.add_argument("--forget-token", action="store_true", help="delete ~/.hexbot/token and exit")
     ap.add_argument("--no-tournament", action="store_true", help="only standalone challenges / self-test games")
     ap.add_argument("--selftest", type=int, nargs="?", const=12, default=None, metavar="PLIES",
                     help="offline: play PLIES plies locally through the move pipeline (no network)")
     args = ap.parse_args()
+    if args.forget_token:
+        try:
+            os.remove(TOKEN_FILE)
+            print("deleted ~/.hexbot/token")
+        except FileNotFoundError:
+            print("no saved token")
+        return
 
     chooser = Chooser(args.engine, args.move_time_ms, args.max_time_ms)
     log(f"engine: {' '.join(chooser.cmd)} ({'found' if chooser.engine_available() else 'MISSING -> greedy fallback'}); "
@@ -626,14 +762,15 @@ def main():
     parsed = urlparse(base)
     if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
         raise SystemExit("Use a plain HTTPS StrategyJam origin in STRATEGYJAM_URL")
-    token = os.environ.get("STRATEGYJAM_TOKEN", "").strip()
-    if not token:
-        raise SystemExit("Set STRATEGYJAM_TOKEN (profile -> Blueprints -> Connect engine)")
     try:
         import websocket  # noqa: F401
     except ImportError:
         raise SystemExit("pip install websocket-client  (or use client/.venv/bin/python)")
-    tournament = None if args.no_tournament else (args.tournament or None)
+    token = get_token(args)
+    tournament = None
+    if not args.no_tournament:
+        tournament = args.tournament or detect_tournament(base) or DEFAULT_TOURNAMENT
+        log("tournament:", tournament, "(override with TOURNAMENT_ID or --tournament; --no-tournament for challenges only)")
     Bot(base, token, tournament, chooser, dry_run=args.dry_run).run()
 
 

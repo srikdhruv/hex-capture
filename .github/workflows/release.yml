@@ -1,0 +1,102 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: ["engine/**", "client/**", ".github/**", "run.sh", "run.ps1"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, asset: hexbot-linux-x64, pyarch: x64 }
+          - { os: macos-14, asset: hexbot-macos-arm64, pyarch: arm64, cxxarch: arm64 }
+          - { os: macos-14, asset: hexbot-macos-x64, pyarch: x64, cxxarch: x86_64 }
+          - { os: windows-latest, asset: hexbot-windows-x64, pyarch: x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build engine (Linux, static)
+        if: runner.os == 'Linux'
+        run: g++ -O3 -std=c++17 -pthread -static -Wno-misleading-indentation -o engine/bp engine/bp.cpp
+
+      - name: Build engine (macOS, clang/libc++)
+        if: runner.os == 'macOS'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
+        run: clang++ -arch ${{ matrix.cxxarch }} -O3 -std=c++17 -pthread -I.github/compat -o engine/bp engine/bp.cpp
+
+      - name: Set up MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc
+
+      - name: Build engine (Windows, MinGW static)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: g++ -O3 -std=c++17 -pthread -static -static-libgcc -static-libstdc++ -Wno-misleading-indentation -o engine/bp.exe engine/bp.cpp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.pyarch }}
+
+      - name: Package with PyInstaller
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller websocket-client certifi
+          EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
+          pyinstaller --onefile --name "${{ matrix.asset }}" \
+            --add-binary "engine/bp${EXE}:engine" \
+            --hidden-import websocket --collect-data certifi \
+            --paths client client/bot.py
+          ls -la dist
+
+      - name: Smoke test (self-test game through the bundled engine)
+        shell: bash
+        run: |
+          EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
+          "./dist/${{ matrix.asset }}${EXE}" --selftest 3 --move-time-ms 300 2>&1 | tee smoke.txt
+          grep -q "via engine" smoke.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publish rolling "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          ls -la out
+          echo "${GITHUB_SHA} $(date -u +%Y%m%dT%H%M%SZ)" > out/version.txt
+          git tag -f latest "${GITHUB_SHA}"
+          git push -f origin latest
+          gh release view latest >/dev/null 2>&1 || gh release create latest --title "hexbot (latest)" \
+            --notes "Rolling build of the Blueprints bot. See README: Play with one command."
+          gh release upload latest out/* --clobber
+          gh release edit latest --notes "Rolling build of the Blueprints bot from ${GITHUB_SHA}. See README: Play with one command."
