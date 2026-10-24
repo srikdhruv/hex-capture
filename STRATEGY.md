@@ -30,6 +30,15 @@ Notation (copy it from the move list): `2@-1,3` = place blueprint 2 at offset (q
 - Losing a star is the mirror image. **A star you can't defend is a gift to the opponent.**
 - Captures late in the game are worth the most (multipliers are big), and there is no time left to retaliate.
 
+## 0a. Player-discovered hand plan (from live games — being validated by lab + engine)
+
+- **Opening, first few actions:** pull the centre stars out of #1 and #3 and stack **all 6 stars into ONE blueprint**.
+- **Restructure the other two blueprints:**
+  - one **long piece** for infiltration and reach;
+  - one **defensive "slither"** (a snake shape) that **carries the 3 walls** as shields.
+- Between them the two non-star pieces should cover **short and long, vertical and horizontal** shapes, so something always fits the hole you need.
+- Exact edit sequences per colour and test results will go in `lab/HAND_PLAN.md`.
+
 ## 0. TL;DR — play this way (updated with lab data)
 
 1. **Stamp blueprint #2 (the 4-star flower) almost every action.** In strong bot-vs-bot games nearly every action is a #2 stamp:
