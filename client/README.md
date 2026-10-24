@@ -106,6 +106,14 @@ On each of our plies, before the move is sent:
 
 At game end the bot writes `last_result.json`. Tests: `python3 client/test_pilot.py`.
 
+**Pilot daemon (the one official pick writer):** `python3 tools/pilot_daemon.py [--dir client/pilot]`
+answers every `decision.json` within ~50ms. It decides with `DIR/rules.json`, which you can edit while it
+runs: glob vetoes, forces (optionally skipped when a capture is available), `protect_from` (no edits to
+#2/#3 after ply X unless there is a capture), `star_safe_dist`, `take_capture_min`, and conditional `when`
+rules. The full schema is in the script's docstring. It refuses to start while another daemon or a legacy
+`autopick*.py` is running. Decisions are logged to `DIR/pilot_daemon.log`. Use `--dry-run` to watch
+without writing picks. Tests: `python3 tools/test_pilot_daemon.py`.
+
 ## Post-mortem of real games
 
 ```bash
