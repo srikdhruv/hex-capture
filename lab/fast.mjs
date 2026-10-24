@@ -78,6 +78,11 @@ export class Game {
     for (let k = 0; k < bp.offs.length; k++) { const c = a + bp.offs[k]; for (let d = 0; d < 6; d++) { const n = c + NB[d]; if (this.own[n] === o && this.kind[n] !== WALL && m[n] !== g) { m[n] = g; ce++; if (this.kind[n] === STAR) st++; } } }
     return [st, ce];
   }
+  peekStars(s, b, a) {
+    const bp = this.hands[s][b], g = ++this.gen, m = this.mark, o = 1 - s, own = this.own, kind = this.kind, offs = bp.offs; let st = 0;
+    for (let k = 0; k < offs.length; k++) { const c = a + offs[k]; for (let d = 0; d < 6; d++) { const n = c + NB[d]; if (own[n] === o && kind[n] === STAR && m[n] !== g) { m[n] = g; st++; } } }
+    return st;
+  }
   // apply placement; returns undo record
   place(b, a) {
     const s = this.seat(), o = 1 - s, bp = this.hands[s][b];

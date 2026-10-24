@@ -8,7 +8,7 @@ async function loadBot(cfg) {
   if (cfg.module) { const m = await import(cfg.module); return m[cfg.export || 'default'](cfg); }
   const { makeBot } = await import('./bots.mjs');
   if (cfg.design) { const { DESIGNS } = await import('./designs.mjs'); const d = DESIGNS[cfg.design]; cfg = { ...cfg, designHand: d.hand, designCost: cfg.designCost ?? d.cost }; }
-  if (cfg.plans) { const { PLANS } = await import('./humanplan.mjs'); cfg = { ...cfg, seq: { 0: PLANS[cfg.plans[0]].moves, 1: PLANS[cfg.plans[1]].moves } }; }
+  if (cfg.plans) { const { PLANS } = await import('./d1plan.mjs'); cfg = { ...cfg, seq: { 0: PLANS[cfg.plans[0]].moves, 1: PLANS[cfg.plans[1]].moves } }; }
   return makeBot(cfg);
 }
 

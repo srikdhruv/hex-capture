@@ -1,0 +1,28 @@
+games 320 in 1642s
+fortlite(9)            win% 100.0  W-L-D 128-0-0  blue 64-0 red 64-0  avgMargin 2537 avgPts 3072
+D1fort18(13)           win%  68.4  W-L-D 87-40-1  blue 40-23 red 47-17  avgMargin 860 avgPts 1931
+D3=D1+starfree@70      win%  46.1  W-L-D 58-68-2  blue 29-35 red 29-33  avgMargin 547 avgPts 1625
+hex19(14)              win%  35.5  W-L-D 45-82-1  blue 25-38 red 20-44  avgMargin 766 avgPts 2075
+aggr                   win%   0.0  W-L-D 0-128-0  blue 0-64 red 0-64  avgMargin -4710 avgPts 205
+aggr (B) vs fortlite(9) (R) 0-16-0
+aggr (B) vs hex19(14) (R) 0-16-0
+aggr (B) vs D1fort18(13) (R) 0-16-0
+aggr (B) vs D3=D1+starfree@70 (R) 0-16-0
+fortlite(9) (B) vs aggr (R) 16-0-0
+fortlite(9) (B) vs hex19(14) (R) 16-0-0
+fortlite(9) (B) vs D1fort18(13) (R) 16-0-0
+fortlite(9) (B) vs D3=D1+starfree@70 (R) 16-0-0
+hex19(14) (B) vs aggr (R) 16-0-0
+hex19(14) (B) vs fortlite(9) (R) 0-16-0
+hex19(14) (B) vs D1fort18(13) (R) 1-15-0
+hex19(14) (B) vs D3=D1+starfree@70 (R) 8-7-1
+D1fort18(13) (B) vs aggr (R) 16-0-0
+D1fort18(13) (B) vs fortlite(9) (R) 0-16-0
+D1fort18(13) (B) vs hex19(14) (R) 15-1-0
+D1fort18(13) (B) vs D3=D1+starfree@70 (R) 9-6-1
+D3=D1+starfree@70 (B) vs aggr (R) 16-0-0
+D3=D1+starfree@70 (B) vs fortlite(9) (R) 0-16-0
+D3=D1+starfree@70 (B) vs hex19(14) (R) 13-3-0
+D3=D1+starfree@70 (B) vs D1fort18(13) (R) 0-16-0
+
+[exited with code 0]

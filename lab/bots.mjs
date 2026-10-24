@@ -21,19 +21,23 @@ export function captureTargets(g, s) {
   for (const i of g.occupied(o)) if (g.kind[i] === STAR) for (let d = 0; d < 6; d++) { const n = i + NB[d]; if (own[n] < 0 && TG[n] !== gen) { TG[n] = gen; targets.push(n); } }
   return targets;
 }
+export const STATS={calls:0,anchors:0,targets:0,fromCombo:0,fromThreat:0};
 export function bestOneCapture(g, s, targets = null) {
+  STATS.calls++;
   const o = 1 - s, own = g.own, hand = g.hands[s]; let best = 0;
   if (!targets) targets = captureTargets(g, s);
   if (!targets.length) return 0;
+  STATS.targets += targets.length;
   for (let b = 0; b < hand.length; b++) {
     const offs = hand[b].offs; if (!offs.length) continue;
     const ag = ++tgen;
     for (const t of targets) for (let j = 0; j < offs.length; j++) {
-      const a = t - offs[j]; if (TG[a] === ag) continue; TG[a] = ag;
+      const a = t - offs[j]; if (TG[a] === ag) continue; TG[a] = ag; STATS.anchors++;
       let ok = true, touch = false;
-      for (let k = 0; k < offs.length; k++) { const c = a + offs[k]; if (own[c] >= 0) { ok = false; break; } if (!touch) for (let d = 0; d < 6; d++) if (own[c + NB[d]] === s) { touch = true; break; } }
+      for (let k = 0; k < offs.length; k++) if (own[a + offs[k]] >= 0) { ok = false; break; }
+      if (ok) for (let k = 0; k < offs.length && !touch; k++) { const c = a + offs[k]; for (let d = 0; d < 6; d++) if (own[c + NB[d]] === s) { touch = true; break; } }
       if (!ok || !touch) continue;
-      const [st] = g.peek(s, b, a); if (st > best) best = st;
+      const st = g.peekStars(s, b, a); if (st > best) best = st;
     }
   }
   return best;
@@ -75,8 +79,8 @@ export function bestCapture(g, s, k = 2) {
       const pts1 = u.pts;
       let tg = null;
       if (!u.removed.length) { // targets unchanged; only those near a1 can newly become reachable
-        const [aq, ar] = qr(a); const lim = 2 * L;
-        tg = targets0.filter((t) => { const [tq, tr] = qr(t); const dq = tq - aq, dr = tr - ar; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2 <= lim; });
+        const aq = a % S, ar = (a / S) | 0; const lim = 2 * L; tg = [];
+        for (const t of targets0) { const dq = (t % S) - aq, dr = ((t / S) | 0) - ar; if ((Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2 <= lim) tg.push(t); }
       }
       const st2 = bestOneCapture(g, s, tg), b2 = st2 * g.stars[s];
       unplaceAs(g, u);
@@ -121,7 +125,8 @@ export function chooseTurn(g, P) {
   const s = g.seat(), n = g.movesLeftInTurn();
   // optional scripted edits (opening reshape plan)
   if (P.edits) { const e = P.edits(g, s); if (e) return e; }
-  const pl = g.placements(s);
+  let pl = g.placements(s);
+  if (P.starFreeAfter != null && g.ply >= P.starFreeAfter) { const f = []; for (let j = 0; j < pl.length; j += 2) if (!g.hands[s][pl[j]].stars) f.push(pl[j], pl[j + 1]); if (f.length) pl = f; }
   if (!pl.length) return ['pass'];
   // first action candidates by static eval after one action
   const first = [];
@@ -135,6 +140,17 @@ export function chooseTurn(g, P) {
   if (n === 1) seqs = first.slice(0, P.final).map(([v, b, a]) => [v, [[b, a]]]);
   else {
     const top = first.slice(0, P.beam);
+    if (P.combo !== false) {
+      // add erasing first actions that open a capture for the second action (erase-then-snipe)
+      const combos = [];
+      for (let j = 0; j < pl.length; j += 2) {
+        const [, ce] = g.peek(s, pl[j], pl[j + 1]); if (!ce) continue;
+        const u = g.place(pl[j], pl[j + 1]); const st2 = bestOneCapture(g, s); const v = u.pts + st2 * g.stars[s]; g.undo(u);
+        if (st2 > 0) combos.push([v, pl[j], pl[j + 1]]);
+      }
+      combos.sort((x, y) => y[0] - x[0]);
+      for (const c of combos.slice(0, 6)) if (!top.some((t) => t[1] === c[1] && t[2] === c[2])) top.push(c);
+    }
     // also include top capturing first moves and erasers? (static eval already credits captures)
     for (const [, b, a] of top) {
       const u = g.place(b, a);
@@ -153,7 +169,9 @@ export function chooseTurn(g, P) {
   // threat check: opponent best capture after our turn
   let best = null, bestV = -Infinity;
   const cands = seqs.slice(0, P.final);
+  cands.sort((x, y) => y[0] - x[0]);
   for (const [v, mv] of cands) {
+    if (v <= bestV) break; // threat penalty is >= 0, cannot beat current best
     const us = mv.map(([b, a]) => g.place(b, a));
     let val = v;
     if (P.wThreat && g.ply < TOTAL) {

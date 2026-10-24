@@ -1,0 +1,11 @@
+games 96 in 694s
+fort(9 real edits)     win% 100.0  W-L-D 32-0-0  blue 16-0 red 16-0  avgMargin 7235 avgPts 7654
+aggr                   win%  59.4  W-L-D 57-39-0  blue 31-17 red 26-22  avgMargin -1011 avgPts 5426
+hp1(9 edits)           win%  15.6  W-L-D 5-27-0  blue 4-12 red 1-15  avgMargin -1496 avgPts 5215
+stack5(5 edits)        win%   6.3  W-L-D 2-30-0  blue 2-14 red 0-16  avgMargin -2706 avgPts 6443
+aggr (B) vs hp1(9 edits) (R) 15-1-0
+aggr (B) vs stack5(5 edits) (R) 16-0-0
+aggr (B) vs fort(9 real edits) (R) 0-16-0
+hp1(9 edits) (B) vs aggr (R) 4-12-0
+stack5(5 edits) (B) vs aggr (R) 2-14-0
+fort(9 real edits) (B) vs aggr (R) 16-0-0

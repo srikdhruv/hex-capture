@@ -1,0 +1,5 @@
+[{"name":"aggr","wStar":0.5,"wThreat":1,"noise":0.5},
+ {"name":"fortlite(9)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort","red_fort"]},
+ {"name":"hex19(14)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_fort19","red_fort19"]},
+ {"name":"D1fort18(13)","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_d1","red_d1"]},
+ {"name":"D3=D1+starfree@70","wStar":0.5,"wThreat":1,"noise":0.5,"plans":["blue_d1","red_d1"],"starFreeAfter":70}]
