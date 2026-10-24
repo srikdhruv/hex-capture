@@ -164,6 +164,26 @@ def main():
     b.stopped.clear()
     b.stopped.wait = threading.Event.wait.__get__(b.stopped)
 
+    # Watchdog: our turn on a live board but no POST (simulated stuck guard) -> GET /game -> act.
+    b.watchdog_grace_s = 0.5
+    b.chooser.cap_ms = 0
+    b.watch("roomC", "tid123")
+    stC = {"you": [1], "turn": 1, "ply": 1, "view": v1, "clock": None}
+    responses["/api/engine/tournaments/tid123/game"] = {"room": "roomC", "state": stC}
+    responses["/api/engine/tournaments/tid123/move"] = {"ok": True}
+    b.pending["roomC"] = 1  # pretend a move is in flight that never got sent
+    n = len(calls)
+    threading.Thread(target=b.watchdog, daemon=True).start()
+    b.on_message(ws, json.dumps({"type": "state", "room": "roomC", "state": stC}))
+    wait_for(lambda: any(c[0].endswith("/move") for c in calls[n:]), timeout=15)
+    paths = [c[0] for c in calls[n:]]
+    assert paths[0] == "/api/engine/tournaments/tid123/game", paths
+    assert b.posted.get("roomC") == 1
+    vC = dict(v1, result={"winner": 1, "reason": "higher score"}, moves=[], scores=[3, 40])
+    b.room_round["roomC"] = 7
+    b.on_message(ws, json.dumps({"type": "state", "room": "roomC", "state": dict(stC, ply=120, view=vC)}))
+    assert "Round 7: we played Red and WON 40-3" in b.game_summary("roomC", dict(stC, view=vC))
+
     # Fatal close codes stop reconnecting.
     b.on_close(ws, 4003, "revoked")
     assert b.stopped.is_set()

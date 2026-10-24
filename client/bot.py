@@ -333,6 +333,11 @@ class Bot:
         self.token = token       # kept only to hand to an updated process via env
         self.updater = updater.Updater(log)
         self.reexec_target = None
+        self.watchdog_grace_s = 11.5  # engine hard-kill grace (1.5s) + 10s
+        self.busy = set()        # rooms whose worker is computing/posting right now
+        self.posted = {}         # room -> last ply we POSTed successfully
+        self.turn_seen = {}      # (room, ply) -> first time we saw it was our turn (watchdog)
+        self.fail_count = {}     # (room, ply) -> failed POSTs (switch move after repeated failures)
         self.ws = None
 
         class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -409,7 +414,7 @@ class Bot:
         self.last_seen[room] = time.time()
         if view.get("result") and room not in self.finished:
             self.finished.add(room)
-            log(f"[{room}] game over: result={json.dumps(view.get('result'))} scores={view.get('scores')} you={state.get('you')}")
+            log(self.game_summary(room, state))
         with self.lock:
             old = self.latest.get(room)
             if old is not None and (old.get("ply") or 0) > (state.get("ply") or 0) and not view.get("result"):
@@ -422,6 +427,71 @@ class Bot:
                 self.workers[room] = t
                 t.start()
             ev.set()
+
+    def game_summary(self, room, state):
+        view = state.get("view") or {}
+        res = view.get("result") or {}
+        sc = view.get("scores") or [0, 0]
+        you = state.get("you") or []
+        rnd = self.room_round.get(room)
+        where = f"Round {rnd}" if rnd is not None else f"Game {str(room)[:8]}"
+        if len(you) != 1:
+            return f"GAME OVER {where}: Blue {sc[0]} - Red {sc[1]} ({res.get('reason', '')})"
+        me = you[0]
+        colour = "Blue" if me == 0 else "Red"
+        winner = res.get("winner") if isinstance(res, dict) else None
+        verdict = "DRAW" if winner is None else ("WON" if winner == me else "LOST")
+        return (f"GAME OVER {where}: we played {colour} and {verdict} {sc[me]}-{sc[1 - me]} "
+                f"({res.get('reason', '') if isinstance(res, dict) else res})")
+
+    def watchdog(self):
+        """If it's our turn on a live board and nothing was POSTed within budget + 10s, re-read and act."""
+        while not self.stopped.wait(2):
+            now = time.time()
+            limit = (min(self.chooser.cap_ms, self.chooser.max_ms or 10 ** 9) / 1000) + self.watchdog_grace_s
+            stuck = []
+            with self.lock:
+                for room, st in self.latest.items():
+                    view = st.get("view") or {}
+                    ply = st.get("ply", view.get("ply"))
+                    if view.get("result") or st.get("turn") not in (st.get("you") or []) or not view.get("moves"):
+                        continue
+                    if self.posted.get(room) == ply or room in self.busy:
+                        continue
+                    start = max(now, (st.get("startsAt") or 0) / 1000)
+                    seen = self.turn_seen.setdefault((room, ply), start)
+                    if now - seen > limit:
+                        stuck.append((room, ply))
+                        self.turn_seen[(room, ply)] = now  # re-arm
+            for room, ply in stuck:
+                self.rescue(room, ply)
+
+    def rescue(self, room, ply):
+        tid = self.room_tid.get(room)
+        log(f"[{room}] watchdog: our turn at ply {ply} but no move sent; re-reading the board")
+        jlog(room, {"type": "watchdog", "ply": ply})
+        with self.lock:
+            if self.pending.get(room) == ply:
+                self.pending.pop(room, None)
+        fresh = None
+        if tid and not self.dry_run:
+            data = self.call(f"/api/engine/tournaments/{tid}/game", None, method="GET")
+            if isinstance(data, dict):
+                if data.get("view"):
+                    fresh = data
+                elif isinstance(data.get("state"), dict) and data["state"].get("view"):
+                    fresh = data["state"]
+                    room = data.get("room") or room
+                elif isinstance(data.get("game"), dict) and data["game"].get("view"):
+                    fresh = data["game"]
+        if fresh:
+            self.on_state(room, fresh)
+        else:
+            self.watch(room, tid)
+            with self.lock:
+                ev = self.events.get(room)
+            if ev:
+                ev.set()
 
     def worker(self, room):
         ev = self.events[room]
@@ -443,6 +513,15 @@ class Bot:
                         self.pending.pop(room, None)
 
     def play(self, room, state):
+        with self.lock:
+            self.busy.add(room)
+        try:
+            self._play(room, state)
+        finally:
+            with self.lock:
+                self.busy.discard(room)
+
+    def _play(self, room, state):
         view = state.get("view") or {}
         you = state.get("you") or []
         turn = state.get("turn", view.get("turn"))
@@ -459,6 +538,12 @@ class Bot:
             if self.stopped.wait(delay + 0.1):
                 return
         move, info = self.chooser.choose(room, state, turn)
+        fails = self.fail_count.get((room, ply), 0)
+        if fails >= 2:  # same ply rejected twice: don't loop on one move, try a different legal move
+            alts = [m for m in view["moves"] if m != move]
+            if alts:
+                move = bprules.best_capture_move(dict(view, moves=alts))
+                info.update(source=f"retry-{fails}")
         with self.lock:
             newest = self.latest.get(room)
         if newest is not state and (newest or {}).get("ply") != ply:
@@ -478,6 +563,8 @@ class Bot:
             f"score Blue {sc[0]} - Red {sc[1]} | via {info.get('source')} eval={info.get('eval')} "
             f"clock={info.get('clock_ms')}ms think={info.get('budget_ms')}ms")
         if self.dry_run:
+            with self.lock:
+                self.posted[room] = ply  # nothing is sent in dry-run; keep the watchdog quiet
             return
         path = f"/api/engine/tournaments/{tid}" if tid else f"/api/engine/games/{room}"
         result = self.call(path + "/move", {"ply": ply, "move": move})
@@ -485,8 +572,10 @@ class Bot:
         if result is not None:
             with self.lock:
                 self.pending[room] = ply  # keep the guard even if a reconnect cleared it mid-move
+                self.posted[room] = ply
         else:
             with self.lock:
+                self.fail_count[(room, ply)] = fails + 1
                 if self.pending.get(room) == ply:
                     self.pending.pop(room, None)
             self.watch(room, tid)  # re-read the board via a fresh pushed snapshot
@@ -533,7 +622,7 @@ class Bot:
         key = (tid, state.get("round"))
         if state.get("status") == "playing" and state.get("active") and not state.get("withdrawn"):
             closes = state.get("closesAt")
-            window_open = closes is None or closes > time.time() * 1000
+            window_open = (closes or 0) > time.time() * 1000  # same rule as the official example
             if not state.get("checkedIn") and key not in self.checked_in and window_open:
                 self.checked_in.add(key)
                 if self.dry_run:
@@ -648,6 +737,7 @@ class Bot:
         import websocket
         if self.updater.enabled():
             threading.Thread(target=self.update_loop, daemon=True, name="updater").start()
+        threading.Thread(target=self.watchdog, daemon=True, name="watchdog").start()
         backoff = 1
         try:
             while not self.stopped.is_set():

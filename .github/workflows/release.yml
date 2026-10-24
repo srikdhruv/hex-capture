@@ -3,7 +3,21 @@ name: release
 on:
   push:
     branches: [main]
-    paths: ["engine/**", "client/**", ".github/**", "run.sh", "run.ps1"]
+    # Only code that ends up in the shipped binary (or the launchers) triggers a release; docs/lab/tests don't,
+    # so they never restart users' bots via auto-update.
+    paths:
+      - "engine/**"
+      - "!engine/**/*.md"
+      - "!engine/*.mjs"
+      - "!engine/versions/**"
+      - "client/**"
+      - "!client/**/*.md"
+      - "!client/test_*.py"
+      - "!client/requirements.txt"
+      - "run.sh"
+      - "run.ps1"
+      - ".github/compat/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
@@ -81,7 +95,10 @@ jobs:
           path: dist/*
 
   release:
+    # Runs only if every platform build AND its smoke test (self-test game + --version) passed,
+    # so a broken build never replaces "latest".
     needs: build
+    if: ${{ success() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
