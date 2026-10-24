@@ -4,6 +4,16 @@
 > Rules source: exact port of the official game code in `reference/rules.mjs`.
 > Status: v1 (lab + engine findings merged; read 0a / 0b / 0 first). Lab results and engine findings will be merged in as they arrive.
 
+## ‼ THE REAL GAME (learned the hard way in R8 and R9 — read this first)
+
+**A side whose stars are fully walled off — no empty path from the enemy to any hole beside a star — can never be scored on again.** Your multiplier is worthless against it.
+So games are decided early:
+1. **Get ahead early.** One capture is enough while multipliers are small.
+2. **Then seal.** Wall your stars in until no empty path reaches any hole next to them.
+3. **After that, never stamp stars the enemy can reach.** Exposed stars are their only way back.
+4. **Crack their starting stars before they seal** — in practice before about action 40. If they seal while ahead, the game is over.
+- Both of our live losses were to "wall cities" (~60 walls around ~9 stars) that we let seal while they were ahead.
+
 ## ⏱ 15-SECOND TURN CHECKLIST (use this every turn — lab #14, ~1000 games)
 
 1. **SNIPE:** is there an empty hex touching **both** an enemy star **and** one of your cells? Stamp #3 there (the 1-hex star): +1 capture **and** +1 multiplier.
