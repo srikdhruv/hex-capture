@@ -61,3 +61,13 @@ Then decide, in priority order:
 - **Blue at 119:** make the single biggest capture.
 - **Red at 117–118:** two captures, or breach + snipe. After 118, leave **no** hex that touches both a Red star and a Blue cell.
 - If ahead and sealed: just plug holes. If behind: every action goes to the highest capture chance, even at a risk.
+
+## 5. Live lessons (pilot)
+
+- **R10, won 5613–1403 against a rusher, from 0–112 down.** Drop the book at once (bookMargin 10, or `--nobook`).
+  A sealed #2 plus the star sniper beats exposed rush stars.
+- **R11, won 3140–595 against a slow wall-sniper stacker.**
+  - Crack early. Their 6 opening edits gave us the front star at ply 8 and two more at ply 20, before any wall went up.
+  - **Edit-then-stamp is our big weapon:** reshaping #1 or #3 into a probe, then stamping it, scored +492, +417 and +536.
+  - Use `take_capture_min≈50`. The engine sometimes passes up cheap snipes to build instead; force the capture.
+  - Once a long enemy probe appears, set `star_safe_dist=7`. Against stackers, the danger is their late multiplier, so take every capture early.
