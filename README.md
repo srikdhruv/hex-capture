@@ -1,74 +1,92 @@
-# hex-capture
+# hex-capture: an AI for StrategyJam's *Blueprints*
 
-Engine and tournament bot for the StrategyJam game **Blueprints**.
+This repo holds a search engine, a tournament bot and a strategy playbook for **Blueprints**, the hex strategy game from the Fall 2026 Strategy Jam.
+In that tournament the bot won its last 5 games in a row and finished 125th of 1179.
 
-## Play with one command
+**Start here:**
 
-You need nothing installed: no Python, node or compiler. The command downloads a prebuilt `hexbot` for
-your OS into `~/.hexbot/`, fetches it again whenever a newer build is released, and runs it. The bot then
-plays as you.
+| Doc | What's in it |
+|---|---|
+| [CONCLUSION.md](CONCLUSION.md) | Results, the strategies in the field, what wins |
+| [PLAYBOOK.md](PLAYBOOK.md) | How to play well, turn by turn |
+| [TERMINOLOGY.md](TERMINOLOGY.md) | Glossary |
+| [engine/README.md](engine/README.md) | How the AI works |
+| [RETROSPECTIVE.md](RETROSPECTIVE.md) | What went right and wrong |
+| [FUTURE_WORK.md](FUTURE_WORK.md) / [HANDOFF.md](HANDOFF.md) | Continue the project |
 
-**macOS / Linux** (Terminal):
+## Play against the AI
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh | bash
-```
+One command, nothing to install: no account, no token, no Python, no compiler.
+The command downloads a prebuilt `hexbot` for your OS into `~/.hexbot/`, keeps it updated, and starts a game.
 
-**Windows** (PowerShell or cmd):
+### In your browser
 
-```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1 | iex"
-```
+| System | Run in a terminal |
+|---|---|
+| **Windows** (PowerShell) | `powershell -ExecutionPolicy Bypass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1))) --play --gui"` |
+| **macOS / Linux** | `curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh \| bash -s -- --play --gui` |
+| **WSL** | Same as Linux. If no browser opens, open the printed `http://127.0.0.1:<port>` in your Windows browser. |
 
-### Advice only (you play manually, no Engine label)
+How it plays:
+- A tab opens with a clickable hex board.
+- **To place:** pick a blueprint, then click the board. A ghost preview shows where it will land.
+- **To edit:** click a cell in one of your blueprints, then click where it should go.
+- Buttons: **Hint**, **Undo**, **New game**.
+- Stop it with Ctrl+C in the terminal.
 
-The bot only reads your board and prints advice on each of your turns. It **never** checks in or sends a
-move, so your entry is not tagged Engine. Check in yourself on strategyjam.org every round and enter the
-moves yourself. On each of your turns it prints the board, scores and stars, the top 3 engine moves with
-their points (the best one is marked `+` on the board), and which of your stars the opponent can capture
-next. Each suggestion takes about 5 seconds to compute.
+### In the terminal
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh | bash -s -- --advise
-```
+Use the same commands with `--play` instead of `--play --gui`.
+Type moves such as `2@3,-1` (place blueprint 2 at q=3, r=-1) or `1:0,1>2:2,0` (move a cell between blueprints).
+Commands: `moves`, `hint`, `undo`, `help`, `quit`.
 
-```powershell
-powershell -ExecutionPolicy Bypass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1))) --advise"
-```
+### Options
 
-### Token
+Add any of these after `--play`:
+- `blue`, `red` or `random`: which side you play.
+- `--level easy|normal|hard`: the AI thinks for 0.5 s, 3 s or 8 s per action.
+- `--time-ms N`: exact think time in milliseconds.
 
-On first start the bot asks for your StrategyJam engine token. Input is hidden, and the token is never
-logged or stored.
+Every game is saved to `~/.hexbot/games/`. To watch one again, use `--replay <file>`.
 
-1. Log in at https://strategyjam.org and open your **profile**.
-2. Under supported games, select **Blueprints**, then click **Connect engine**.
-3. Copy the token. It is shown once and expires after 24h. Paste it into the bot.
+**Rules in short:**
+- Stamp a blueprint onto empty hexes touching your cells.
+- Every enemy non-wall cell your stamp touches is erased.
+- Each enemy **star** you erase scores your current star count.
+- Walls can never be erased.
+- 120 actions: Blue plays 1, then turns of 2 actions alternate. Highest score wins.
 
-To skip the prompt next time, add `--save-token` (macOS/Linux: `... | bash -s -- --save-token`). It writes
-`~/.hexbot/token` with 0600 permissions. `--forget-token` deletes it. Alternatively, set
-`STRATEGYJAM_TOKEN` in the environment.
+## Let the AI play for you on strategyjam.org
 
-> **Engine label:** the first accepted engine move tags your tournament entry as **Engine** for the whole tournament.
+1. On strategyjam.org, go to your **profile**, select **Blueprints** under supported games, then click **Connect engine** and copy the token. It lasts 24 h.
+2. Run the launcher with no arguments:
+   - Windows: `powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.ps1 | iex"`
+   - macOS / Linux / WSL: `curl -fsSL https://raw.githubusercontent.com/srikdhruv/hex-capture/main/run.sh | bash`
+3. Paste the token when asked. Input is hidden and never logged. Add `--save-token` to keep it.
 
-What it does:
-- Finds the live Blueprints tournament on its own (override with `TOURNAMENT_ID`).
-- Checks in every round, plays every move, and also plays "Test your engine" self-test games.
-- Prints one line per move: round, colour, ply, move, score.
-- Writes logs to `~/.hexbot/logs/`. Stop it with Ctrl+C.
-- To send us your games, run it with `--logs` (macOS/Linux: `... | bash -s -- --logs`). It prints the log
-  folder and zips the last 10 game logs into one file (`--logs 30` for more). The zip never contains the token.
-- Keeps itself up to date. Each launch runs the newest build. While running, it checks about every
-  2 minutes, between games only and never mid-game. When there is a new build it swaps it in, restarts
-  with the same settings and prints `updated to <sha>`. `--no-update` turns this off; `--version`
-  prints the build.
+It finds the live tournament, checks in every round, plays every move, and updates itself between games. The first engine move tags your entry as "Engine".
+
+Other modes:
+- `--advise`: shows suggestions while you play yourself. It never moves.
+- `--pilot DIR`: a co-pilot steers the engine; see [HANDOFF.md](HANDOFF.md).
+- `--logs`: zips your game logs.
+- `--version`, `--no-update`.
 
 Downloads: https://github.com/srikdhruv/hex-capture/releases/tag/latest
-(`hexbot-windows-x64.exe`, `hexbot-macos-arm64`, `hexbot-macos-x64`, `hexbot-linux-x64`).
 
-## Developers
+## For developers
 
-- `client/`: the tournament client (`client/README.md` has run options, logs and the protocol notes).
-- `engine/`: the C++ engine (`engine/build.sh`).
-- `tools/`: pair-play helper (`suggest.py`), arena (`arena.py`), greedy fallback, rules CLI.
-- `reference/`: official rules port and protocol example.
+| Path | What it is |
+|---|---|
+| `reference/rules.mjs` | Exact rules, ported from the official game code. `client/bprules.py` is the Python port. |
+| `engine/` | C++17 search engine. Build with `bash engine/build.sh`; test with `node engine/test_movegen.mjs`. |
+| `client/` | Tournament bot, play mode (terminal and browser), pilot interface, auto-updater. |
+| `tools/` | `arena.py` (A/B matches), `analyze.py` / `suggest.py` / `postmortem.py`, `pilot_daemon.py`, `bots/` (sealer and rusher), `scout/` (harvest and analyse real games). |
+| `lab/` | JS simulator, experiments, harvested tournament games, live game records. |
+
+Typical loop:
+
+```bash
+bash engine/build.sh
+python3 tools/arena.py --a "engine/bp --time-ms 500" --b "python3 tools/bots/sealer.py" --games 16 --jobs 4
+```
