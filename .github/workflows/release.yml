@@ -77,7 +77,7 @@ jobs:
           echo "BUILD_SHA = \"${GITHUB_SHA}\"" > client/_build.py
           pyinstaller --onefile --name "${{ matrix.asset }}" \
             --add-binary "engine/bp${EXE}:engine" \
-            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --hidden-import pilot --hidden-import play --collect-data certifi \
+            --hidden-import websocket --hidden-import _build --hidden-import advise --hidden-import hexrender --hidden-import pilot --hidden-import play --hidden-import gui --add-data "client/gui.html:." --collect-data certifi \
             --paths client client/bot.py
           ls -la dist
 
@@ -90,6 +90,17 @@ jobs:
           "./dist/${{ matrix.asset }}${EXE}" --selftest 2 --advise --move-time-ms 300 2>&1 | tee advise.txt
           grep -q "Top moves" advise.txt
           test "$("./dist/${{ matrix.asset }}${EXE}" --version | tr -d '\r')" = "${GITHUB_SHA}"
+
+      - name: Smoke test (--play --gui serves the page and state)
+        shell: bash
+        run: |
+          EXE=""; [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
+          BIN="./dist/${{ matrix.asset }}${EXE}"
+          "$BIN" --play --gui blue --no-browser --time-ms 100 --port 8765 > gui.txt 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8765/state > state.json && break; sleep 1; done
+          curl -sf http://127.0.0.1:8765/ | grep -qi "<svg\|<html"
+          grep -q '"ply"' state.json
+          kill %1 2>/dev/null || true
 
       - name: Smoke test (--play a full scripted game via stdin, then --replay it)
         shell: bash

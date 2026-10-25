@@ -20,6 +20,7 @@ Usage:
   python3 client/bot.py --selftest [N]      # offline: plays N plies locally through the same move pipeline
   python3 client/bot.py --play [blue|red|random] [--level easy|normal|hard | --time-ms N]
                                             # offline: you vs the engine in the terminal (no account/token)
+  python3 client/bot.py --play --gui [blue|red|random] [--level ...]   # same game in your browser (local web UI)
   python3 client/bot.py --replay FILE       # view a saved --play game (~/.hexbot/games/local-*.json)
 """
 import argparse
@@ -905,10 +906,17 @@ def run_play(args):
         except (OSError, ValueError) as e:
             raise SystemExit(f"cannot replay {args.replay}: {e}")
         return
-    side = args.play or "random"
+    side = (args.gui or args.play or "random").lower()
+    if side not in play.SEATS and side != "random":
+        raise SystemExit(f"--gui: side must be blue, red or random (got {side!r})")
     human = random.randint(0, 1) if side == "random" else play.SEATS[side]
     time_ms = args.time_ms if args.time_ms else play.LEVELS[args.level]
     level = None if args.time_ms else args.level
+    if args.gui is not None:
+        import gui
+        gui.serve(local_engine(args.engine), human, time_ms, level=level, build=BUILD_SHA[:12],
+                  port=args.port, browser=not args.no_browser)
+        return
     play.LocalGame(local_engine(args.engine), human, time_ms, level=level, build=BUILD_SHA[:12]).run()
 
 
@@ -1060,9 +1068,14 @@ def main():
     ap.add_argument("--level", choices=["easy", "normal", "hard"], default="normal",
                     help="--play engine strength: easy/normal/hard = 500/3000/8000 ms per action")
     ap.add_argument("--time-ms", type=int, default=None, help="--play engine think time per action (overrides --level)")
+    ap.add_argument("--gui", nargs="?", const="", default=None, metavar="SIDE",
+                    help="with --play: play in your web browser instead of the terminal (local page on 127.0.0.1); "
+                         "SIDE = blue, red or random")
+    ap.add_argument("--port", type=int, default=0, help="--gui: port on 127.0.0.1 (default: any free port)")
+    ap.add_argument("--no-browser", action="store_true", help="--gui: only print the address, do not open a browser")
     ap.add_argument("--replay", metavar="FILE", help="view a saved --play game (~/.hexbot/games/local-*.json)")
     args = ap.parse_args()
-    if args.play is not None or args.replay:
+    if args.play is not None or args.replay or args.gui is not None:
         run_play(args)
         return
     if args.no_update:
